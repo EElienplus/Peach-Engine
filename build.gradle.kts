@@ -7,6 +7,7 @@ version = "1.0"
 
 val lwjglVersion = "3.4.3"
 val jomlVersion = "1.10.9"
+val imguiVersion = "1.92.7.1"
 
 // Automatically detect host OS and architecture for LWJGL natives
 val lwjglNatives = Pair(
@@ -75,6 +76,13 @@ dependencies {
 
     // JOML
     implementation("org.joml:joml:$jomlVersion")
+
+    // ImGui
+    implementation("io.github.spair:imgui-java-binding:$imguiVersion")
+    implementation("io.github.spair:imgui-java-lwjgl3:$imguiVersion")
+    implementation("io.github.spair:imgui-java-natives-windows:$imguiVersion")
+    implementation("io.github.spair:imgui-java-natives-linux:$imguiVersion")
+    implementation("io.github.spair:imgui-java-natives-macos:$imguiVersion")
 }
 
 tasks.withType<Test> {

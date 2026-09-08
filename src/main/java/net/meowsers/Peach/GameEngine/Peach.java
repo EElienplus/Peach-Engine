@@ -1,4 +1,4 @@
-package net.meowsers.Peach;
+package net.meowsers.Peach.GameEngine;
 
 import net.meowsers.Peach.Graphics.Renderer;
 import net.meowsers.Peach.Graphics.Window;

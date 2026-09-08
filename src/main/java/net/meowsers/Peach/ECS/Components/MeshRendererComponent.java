@@ -1,6 +1,5 @@
 package net.meowsers.Peach.ECS.Components;
 
-import net.meowsers.Peach.ECS.Component;
 import net.meowsers.Peach.Graphics.Mesh;
 import net.meowsers.Peach.Graphics.Model;
 import net.meowsers.Peach.Graphics.Renderer;
@@ -10,10 +9,14 @@ import org.joml.Vector3f;
 import java.util.Arrays;
 import java.util.List;
 
-public class MeshRendererComponent extends Component {
+public class MeshRendererComponent extends BehaviorComponent {
 
     public Model model;
     private boolean visible = true;
+
+    public MeshRendererComponent() {
+        this(new Model());
+    }
 
     public MeshRendererComponent(Model model) {
         this.model = model;
@@ -23,57 +26,37 @@ public class MeshRendererComponent extends Component {
         this(new Model(modelPath));
     }
 
-    public MeshRendererComponent(String modelPath, Texture... textures) {
-        this(new Model(modelPath));
-        if (textures != null && this.model != null) {
-            for (Texture t : textures) {
-                if (t != null) {
-                    this.model.addTexture(t);
-                }
-            }
-        }
-    }
-
     public MeshRendererComponent(Mesh mesh) {
         this(new Model(mesh));
-    }
-
-    public MeshRendererComponent(Mesh mesh, Texture... textures) {
-        this(new Model(mesh));
-        if (textures != null && this.model != null) {
-            for (Texture t : textures) {
-                if (t != null) {
-                    this.model.addTexture(t);
-                }
-            }
-        }
     }
 
     public MeshRendererComponent(Model model, Texture... textures) {
         this(model);
         if (textures != null && this.model != null) {
             for (Texture t : textures) {
-                if (t != null) {
-                    this.model.addTexture(t);
-                }
+                if (t != null) this.model.addTexture(t);
             }
         }
     }
 
-    public MeshRendererComponent() {
-        this(new Model());
+    public MeshRendererComponent(String modelPath, Texture... textures) {
+        this(new Model(modelPath), textures);
+    }
+
+    public MeshRendererComponent(Mesh mesh, Texture... textures) {
+        this(new Model(mesh), textures);
     }
 
     public void setModel(Model model) {
         this.model = model;
     }
 
-    public void setModel(String modelPath) {
-        this.model = new Model(modelPath);
-    }
-
     public void setMesh(Mesh mesh) {
         this.model = new Model(mesh);
+    }
+
+    public void setModel(String modelPath) {
+        this.model = new Model(modelPath);
     }
 
     public Model getModel() {
@@ -114,19 +97,14 @@ public class MeshRendererComponent extends Component {
     }
 
     @Override
-    public void start() {
-        super.start();
-    }
-
-    @Override
     public void update(float dt) {
         super.update(dt);
         if (!visible || !isEnabled() || model == null) return;
 
-        TransformComponent t = transform != null ? transform : getTransform();
-        Vector3f pos = t != null && t.position != null ? t.position : new Vector3f(0.0f);
-        Vector3f rot = t != null && t.rotation != null ? t.rotation : new Vector3f(0.0f);
-        Vector3f sca = t != null && t.scale != null ? t.scale : new Vector3f(1.0f);
+        TransformComponent t = getTransform();
+        Vector3f pos = (t != null && t.position != null) ? t.position : new Vector3f(0.0f);
+        Vector3f rot = (t != null && t.rotation != null) ? t.rotation : new Vector3f(0.0f);
+        Vector3f sca = (t != null && t.scale != null) ? t.scale : new Vector3f(1.0f);
 
         Renderer.drawModel(model, model.getTextures(), pos, rot, sca);
     }

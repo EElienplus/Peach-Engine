@@ -60,6 +60,14 @@ public class Light {
         this.intensity = intensity;
     }
 
+    public Light(Color color, float intensity) {
+        this(new Vector3f(10.0f, 20.0f, 15.0f), color, intensity);
+    }
+
+    public Light(Color color, float intensity, LightType type) {
+        this(new Vector3f(10.0f, 20.0f, 15.0f), color, intensity, type);
+    }
+
     public Light(Vector3f position, Color color, float intensity, LightType type) {
         this(position, color, intensity);
         if (type != null) {

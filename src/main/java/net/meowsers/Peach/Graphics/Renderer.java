@@ -21,8 +21,13 @@ public class Renderer {
     private static Color bgColor = Color.Black;
 
     private static Camera camera;
-    private static Light light = new Light(new Vector3f(10.0f, 20.0f, 15.0f), Color.White, 1.0f);
+    public static final int MAX_LIGHTS = 16;
+    private static final List<Light> lights = new ArrayList<>();
     private static boolean lightingEnabled = true;
+
+    static {
+        lights.add(new Light(new Vector3f(10.0f, 20.0f, 15.0f), Color.White, 1.0f));
+    }
 
     private static boolean cullingEnabled = true;
     private static boolean normalCullingEnabled = false;
@@ -35,6 +40,7 @@ public class Renderer {
     public static void init(long window) {
         windowHandle = window;
         camera = null;
+        lights.clear();
         batches.clear();
         renderCallsAmount = 0;
         cullingEnabled = true;
@@ -86,11 +92,77 @@ public class Renderer {
     }
 
     public static Light getLight() {
-        return light;
+        return lights.isEmpty() ? null : lights.get(0);
+    }
+
+    public static Light getLight(int index) {
+        if (index >= 0 && index < lights.size()) {
+            return lights.get(index);
+        }
+        return null;
+    }
+
+    public static List<Light> getLights() {
+        return lights;
     }
 
     public static void setLight(Light l) {
-        light = l;
+        lights.clear();
+        if (l != null) {
+            lights.add(l);
+        }
+    }
+
+    public static void setLight(int index, Light l) {
+        if (index < 0) return;
+        if (l == null) {
+            if (index < lights.size()) {
+                lights.remove(index);
+            }
+            return;
+        }
+        while (lights.size() <= index) {
+            lights.add(null);
+        }
+        lights.set(index, l);
+    }
+
+    public static void addLight(Light l) {
+        if (l != null && !lights.contains(l)) {
+            lights.add(l);
+        }
+    }
+
+    public static void removeLight(Light l) {
+        if (l != null) {
+            lights.remove(l);
+        }
+    }
+
+    public static void clearLights() {
+        lights.clear();
+    }
+
+    public static void setLights(List<Light> newLights) {
+        lights.clear();
+        if (newLights != null) {
+            for (Light l : newLights) {
+                if (l != null && !lights.contains(l)) {
+                    lights.add(l);
+                }
+            }
+        }
+    }
+
+    public static void setLights(Light... newLights) {
+        lights.clear();
+        if (newLights != null) {
+            for (Light l : newLights) {
+                if (l != null && !lights.contains(l)) {
+                    lights.add(l);
+                }
+            }
+        }
     }
 
     public static boolean isLightingEnabled() {
@@ -427,6 +499,18 @@ public class Renderer {
         }
     }
 
+    public static void drawMesh(Mesh mesh, Vector3f position) {
+        drawMesh(mesh, (List<Texture>) null, position, null, null);
+    }
+
+    public static void drawMesh(Mesh mesh, Texture texture, Vector3f position) {
+        drawMesh(mesh, texture, position, null, null);
+    }
+
+    public static void drawMesh(Mesh mesh, List<Texture> textures, Vector3f position) {
+        drawMesh(mesh, textures, position, null, null);
+    }
+
     public static void drawMesh(Mesh mesh, Vector3f position, Vector3f rotation, Vector3f scale) {
         drawMesh(mesh, (List<Texture>) null, position, rotation, scale);
     }
@@ -568,25 +652,35 @@ public class Renderer {
             shader.uploadVec3f("uCameraPos", 0.0f, 0.0f, 1000.0f);
         }
 
-        boolean useLighting = lightingEnabled && light != null && (camera != null);
+        boolean useLighting = lightingEnabled && !lights.isEmpty() && (camera != null);
         if (useLighting) {
+            int numLights = Math.min(lights.size(), MAX_LIGHTS);
             shader.uploadInt("uUseLighting", 1);
-            shader.uploadInt("uLightType", light.getType() != null ? light.getType().getId() : (light.isDirectional() ? 1 : 0));
-            shader.uploadInt("uIsDirectional", light.isDirectional() ? 1 : 0);
-            shader.uploadVec3f("uLightPos", light.getPosition());
-            shader.uploadVec3f("uLightDir", light.getDirection() != null ? light.getDirection() : new org.joml.Vector3f(0.0f, -1.0f, 0.0f));
-            shader.uploadFloat("uLightIntensity", light.getIntensity());
-            Color lColor = light.getColor() != null ? light.getColor() : Color.White;
-            shader.uploadVec4f("uLightColor", lColor.r, lColor.g, lColor.b, lColor.a);
-            Color aColor = light.getAmbientColor() != null ? light.getAmbientColor() : Color.White;
+            shader.uploadInt("uNumLights", numLights);
+
+            Light firstLight = lights.get(0);
+            Color aColor = (firstLight != null && firstLight.getAmbientColor() != null) ? firstLight.getAmbientColor() : Color.White;
             shader.uploadVec3f("uAmbientColor", aColor.r, aColor.g, aColor.b);
-            shader.uploadFloat("uAmbientIntensity", light.getAmbientIntensity());
-            shader.uploadFloat("uSpecularIntensity", light.getSpecularIntensity());
-            shader.uploadFloat("uShininess", light.getShininess());
-            shader.uploadFloat("uCutOff", light.getCutOff());
-            shader.uploadFloat("uOuterCutOff", light.getOuterCutOff());
+            shader.uploadFloat("uAmbientIntensity", firstLight != null ? firstLight.getAmbientIntensity() : 0.1f);
+
+            for (int i = 0; i < numLights; i++) {
+                Light l = lights.get(i);
+                if (l == null) continue;
+                shader.uploadInt("uLightType[" + i + "]", l.getType() != null ? l.getType().getId() : (l.isDirectional() ? 1 : 0));
+                shader.uploadInt("uIsDirectional[" + i + "]", l.isDirectional() ? 1 : 0);
+                shader.uploadVec3f("uLightPos[" + i + "]", l.getPosition());
+                shader.uploadVec3f("uLightDir[" + i + "]", l.getDirection() != null ? l.getDirection() : new org.joml.Vector3f(0.0f, -1.0f, 0.0f));
+                shader.uploadFloat("uLightIntensity[" + i + "]", l.getIntensity());
+                Color lColor = l.getColor() != null ? l.getColor() : Color.White;
+                shader.uploadVec4f("uLightColor[" + i + "]", lColor.r, lColor.g, lColor.b, lColor.a);
+                shader.uploadFloat("uSpecularIntensity[" + i + "]", l.getSpecularIntensity());
+                shader.uploadFloat("uShininess[" + i + "]", l.getShininess());
+                shader.uploadFloat("uCutOff[" + i + "]", l.getCutOff());
+                shader.uploadFloat("uOuterCutOff[" + i + "]", l.getOuterCutOff());
+            }
         } else {
             shader.uploadInt("uUseLighting", 0);
+            shader.uploadInt("uNumLights", 0);
         }
 
         int drawCalls = 0;

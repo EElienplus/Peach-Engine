@@ -1,15 +1,13 @@
-package net.meowsers.Peach;
+package net.meowsers.Peach.GameEngine;
 
-import net.meowsers.Peach.GameEngine.PeachLevel;
+import net.meowsers.Peach.GUI.PeachGui;
 import net.meowsers.Peach.Graphics.Renderer;
 import net.meowsers.Peach.Graphics.Window;
 import net.meowsers.Peach.Utils.Input;
-import net.meowsers.Peach.Utils.Log;
 import net.meowsers.Peach.Utils.Time;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
 
 public abstract class PeachApplication {
 
@@ -58,11 +56,13 @@ public abstract class PeachApplication {
         window = peach.getWindow();
         Time.start();
         Input.start(window.getHandle());
+        PeachGui.init(window.getHandle());
 
         levels = new ArrayList<>();
 
         start();
         startLevels();
+        window.updateProperties();
 
         while(window.isRunning()) {
             peach.update();
@@ -70,6 +70,7 @@ public abstract class PeachApplication {
 
             dt = Time.getDeltaTime();
 
+            PeachGui.newFrame();
 
             if(levels != null && !levels.isEmpty()) {
                 updateLevels(dt);
@@ -78,6 +79,7 @@ public abstract class PeachApplication {
             update(dt);
 
             Renderer.render();
+            PeachGui.render();
 
             Input.endFrame();
             window.present();
@@ -88,6 +90,7 @@ public abstract class PeachApplication {
         }
 
         end();
+        PeachGui.destroy();
         peach.end();
     }
 

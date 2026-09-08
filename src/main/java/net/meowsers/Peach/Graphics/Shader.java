@@ -234,13 +234,14 @@ public class Shader {
                 line = line.trim();
                 if (line.isEmpty()) continue;
                 String normalized = line.replaceAll("mat4x4", "mat4");
-                // Remove trailing _0 on variable declaration if present
-                Matcher varMatcher = Pattern.compile("(\\w+)\\s+(\\w+?)(_0)?$").matcher(normalized);
+                // Remove trailing _0 on variable declaration if present (including array brackets like [16])
+                Matcher varMatcher = Pattern.compile("(\\w+)\\s+(\\w+?)(_0)?(\\s*\\[\\s*\\d+\\s*\\])?$").matcher(normalized);
                 if (varMatcher.find()) {
                     String type = varMatcher.group(1);
                     String rawName = varMatcher.group(2);
                     String cleanName = rawName.replaceAll("_0$", "");
-                    uniformsDecl.append("uniform ").append(type).append(" ").append(cleanName).append(";\n");
+                    String arrayPart = varMatcher.group(4) != null ? varMatcher.group(4).replaceAll("\\s+", "") : "";
+                    uniformsDecl.append("uniform ").append(type).append(" ").append(cleanName).append(arrayPart).append(";\n");
 
                     // Map e.g. Uniforms_0.uProjection_0 -> uProjection
                     uniformReplacements.put(instanceName + "\\." + rawName + "(?:_0)?", cleanName);

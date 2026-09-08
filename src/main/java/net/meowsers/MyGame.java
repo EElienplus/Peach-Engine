@@ -1,11 +1,6 @@
 package net.meowsers;
 
-import net.meowsers.Peach.ECS.Components.MeshRendererComponent;
-import net.meowsers.Peach.ECS.GameObject;
-import net.meowsers.Peach.Graphics.*;
-import net.meowsers.Peach.PeachApplication;
-import net.meowsers.Peach.Structures.Color;
-import org.joml.Vector3f;
+import net.meowsers.Peach.GameEngine.PeachApplication;
 
 public class MyGame extends PeachApplication {
 

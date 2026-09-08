@@ -14,6 +14,10 @@ public class Window {
     private boolean running;
 
     public Window() {
+        if (WindowParams.maximized) {
+            glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+        }
+
         handle = glfwCreateWindow(WindowParams.width, WindowParams.height, WindowParams.title, 0, 0);
         if(handle == 0) {
             Log.fatalGlfw();
@@ -43,7 +47,6 @@ public class Window {
 
     private void framebuferSizeCallback(long handle, int width, int height) {
         glViewport(0, 0, width, height);
-        updateProperties();
     }
 
     public void update() {
@@ -52,7 +55,12 @@ public class Window {
     }
 
     public void updateProperties() {
-        glfwSetWindowSize(handle, WindowParams.width, WindowParams.height);
+        if (WindowParams.maximized) {
+            glfwMaximizeWindow(handle);
+        } else {
+            glfwRestoreWindow(handle);
+            glfwSetWindowSize(handle, WindowParams.width, WindowParams.height);
+        }
         glfwSetWindowTitle(handle, WindowParams.title);
     }
 

@@ -621,6 +621,14 @@ public class Mesh {
         return createCube(size, Color.White, texture);
     }
 
+    public static Mesh createCube(float size, Color color) {
+        return createCube(size, color, null);
+    }
+
+    public static Mesh createCube(float size) {
+        return createCube(size, Color.White, null);
+    }
+
     public static Mesh createSphere(float radius, int slices, int stacks, Color color, Texture texture) {
         Color c = color != null ? color : Color.White;
         Mesh mesh = new Mesh("Sphere");
@@ -664,6 +672,26 @@ public class Mesh {
         mesh.setTexture(texture);
         mesh.setColor(c);
         return mesh;
+    }
+
+    public static Mesh createSphere(float radius, int slices, int stacks, Color color) {
+        return createSphere(radius, slices, stacks, color, null);
+    }
+
+    public static Mesh createSphere(float radius, int slices, int stacks) {
+        return createSphere(radius, slices, stacks, Color.White, null);
+    }
+
+    public static Mesh createSphere(float radius, Color color) {
+        return createSphere(radius, 16, 16, color, null);
+    }
+
+    public static Mesh createSphere(float radius) {
+        return createSphere(radius, 16, 16, Color.White, null);
+    }
+
+    public static Mesh createSphere() {
+        return createSphere(0.5f, 16, 16, Color.White, null);
     }
 
     public List<Vertex> getVertices() {
@@ -773,6 +801,12 @@ public class Mesh {
 
     public void setColor(Color color) {
         this.color = color != null ? color : Color.White;
+        for (Vertex v : vertices) {
+            v.r = this.color.r;
+            v.g = this.color.g;
+            v.b = this.color.b;
+            v.a = this.color.a;
+        }
     }
 
     public String getName() {

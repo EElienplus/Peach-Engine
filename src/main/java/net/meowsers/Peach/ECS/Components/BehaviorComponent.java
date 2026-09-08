@@ -15,6 +15,14 @@ public class BehaviorComponent extends Component {
     private Consumer<GameObject> onStartBehavior;
     private Runnable onDestroyAction;
     private Consumer<GameObject> onDestroyBehavior;
+    private Runnable onEnableAction;
+    private Consumer<GameObject> onEnableBehavior;
+    private Runnable onDisableAction;
+    private Consumer<GameObject> onDisableBehavior;
+    private Runnable onAddedAction;
+    private Consumer<GameObject> onAddedBehavior;
+    private Runnable onRemovedAction;
+    private Consumer<GameObject> onRemovedBehavior;
 
     public BehaviorComponent() {
     }
@@ -67,6 +75,46 @@ public class BehaviorComponent extends Component {
         return this;
     }
 
+    public BehaviorComponent onEnable(Runnable action) {
+        this.onEnableAction = action;
+        return this;
+    }
+
+    public BehaviorComponent onEnable(Consumer<GameObject> action) {
+        this.onEnableBehavior = action;
+        return this;
+    }
+
+    public BehaviorComponent onDisable(Runnable action) {
+        this.onDisableAction = action;
+        return this;
+    }
+
+    public BehaviorComponent onDisable(Consumer<GameObject> action) {
+        this.onDisableBehavior = action;
+        return this;
+    }
+
+    public BehaviorComponent onAdded(Runnable action) {
+        this.onAddedAction = action;
+        return this;
+    }
+
+    public BehaviorComponent onAdded(Consumer<GameObject> action) {
+        this.onAddedBehavior = action;
+        return this;
+    }
+
+    public BehaviorComponent onRemoved(Runnable action) {
+        this.onRemovedAction = action;
+        return this;
+    }
+
+    public BehaviorComponent onRemoved(Consumer<GameObject> action) {
+        this.onRemovedBehavior = action;
+        return this;
+    }
+
     @Override
     public void start() {
         super.start();
@@ -97,6 +145,50 @@ public class BehaviorComponent extends Component {
         }
         if (onDestroyBehavior != null && gameObject != null) {
             onDestroyBehavior.accept(gameObject);
+        }
+    }
+
+    @Override
+    public void onEnable() {
+        super.onEnable();
+        if (onEnableAction != null) {
+            onEnableAction.run();
+        }
+        if (onEnableBehavior != null && gameObject != null) {
+            onEnableBehavior.accept(gameObject);
+        }
+    }
+
+    @Override
+    public void onDisable() {
+        super.onDisable();
+        if (onDisableAction != null) {
+            onDisableAction.run();
+        }
+        if (onDisableBehavior != null && gameObject != null) {
+            onDisableBehavior.accept(gameObject);
+        }
+    }
+
+    @Override
+    public void onAdded() {
+        super.onAdded();
+        if (onAddedAction != null) {
+            onAddedAction.run();
+        }
+        if (onAddedBehavior != null && gameObject != null) {
+            onAddedBehavior.accept(gameObject);
+        }
+    }
+
+    @Override
+    public void onRemoved() {
+        super.onRemoved();
+        if (onRemovedAction != null) {
+            onRemovedAction.run();
+        }
+        if (onRemovedBehavior != null && gameObject != null) {
+            onRemovedBehavior.accept(gameObject);
         }
     }
 }

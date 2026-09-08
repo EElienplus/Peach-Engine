@@ -149,6 +149,42 @@ public class GameObject {
         return this;
     }
 
+    public GameObject onEnable(Runnable onEnable) {
+        if (onEnable != null) {
+            BehaviorComponent comp = new BehaviorComponent();
+            comp.onEnable(onEnable);
+            addComponent(comp);
+        }
+        return this;
+    }
+
+    public GameObject onEnable(Consumer<GameObject> onEnable) {
+        if (onEnable != null) {
+            BehaviorComponent comp = new BehaviorComponent();
+            comp.onEnable(onEnable);
+            addComponent(comp);
+        }
+        return this;
+    }
+
+    public GameObject onDisable(Runnable onDisable) {
+        if (onDisable != null) {
+            BehaviorComponent comp = new BehaviorComponent();
+            comp.onDisable(onDisable);
+            addComponent(comp);
+        }
+        return this;
+    }
+
+    public GameObject onDisable(Consumer<GameObject> onDisable) {
+        if (onDisable != null) {
+            BehaviorComponent comp = new BehaviorComponent();
+            comp.onDisable(onDisable);
+            addComponent(comp);
+        }
+        return this;
+    }
+
     public <T extends Component> T addComponent(T component) {
         if (component == null) return null;
         component.setGameObject(this);

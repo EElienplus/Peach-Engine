@@ -1,5 +1,6 @@
 package net.meowsers.Peach.Graphics;
 
+import net.meowsers.Peach.GUI.PeachGui;
 import net.meowsers.Peach.Structures.Key;
 import net.meowsers.Peach.Structures.MouseButton;
 import net.meowsers.Peach.Structures.WindowParams;
@@ -85,6 +86,12 @@ public class Camera {
         double mouseY = Input.getMouseY();
 
         boolean isRmbDown = Input.isMouseButtonDown(MouseButton.RIGHT);
+        boolean guiCapturesMouse = PeachGui.isInitialized() && PeachGui.wantCaptureMouse();
+        boolean guiCapturesKeyboard = PeachGui.isInitialized() && PeachGui.wantCaptureKeyboard();
+
+        if (guiCapturesMouse && !wasRmbDown) {
+            isRmbDown = false;
+        }
 
         if (firstMouse) {
             lastMouseX = mouseX;
@@ -126,6 +133,10 @@ public class Camera {
 
                 updateCameraVectors();
             }
+        }
+
+        if (guiCapturesKeyboard) {
+            return;
         }
 
         float currentSpeed = moveSpeed;

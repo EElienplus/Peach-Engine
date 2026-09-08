@@ -1,130 +1,260 @@
 package net.meowsers.Peach.ECS.Components;
 
-import net.meowsers.Peach.ECS.Component;
+import net.meowsers.Peach.GUI.Editor;
 import net.meowsers.Peach.Graphics.Light;
+import net.meowsers.Peach.Graphics.Mesh;
 import net.meowsers.Peach.Graphics.Renderer;
 import net.meowsers.Peach.Structures.Color;
 import net.meowsers.Peach.Structures.LightType;
 import org.joml.Vector3f;
 
-public class LightComponent extends Component {
+public class LightComponent extends BehaviorComponent {
 
     private Light light;
-    private boolean isCurrent = true;
+
+    @Editor private boolean isCurrent = true;
+    @Editor private boolean drawDebugBall = true;
+
+    @Editor public LightType lightType = LightType.POINT;
+    @Editor public Vector3f lightPosition = new Vector3f(10.0f, 20.0f, 15.0f);
+    @Editor public Vector3f lightDirection = new Vector3f(0.0f, -1.0f, 0.0f);
+    @Editor public Color lightColor = Color.White;
+    @Editor public float lightIntensity = 1.0f;
+    @Editor public Color ambientColor = new Color(0.25f, 0.25f, 0.28f, 1.0f);
+    @Editor public float ambientIntensity = 0.35f;
+    @Editor public float specularIntensity = 0.5f;
+    @Editor public float shininess = 32.0f;
+    @Editor public float cutOff = 0.91f;
+    @Editor public float outerCutOff = 0.82f;
+    @Editor public float debugBallRadius = 0.5f;
+
+    private Mesh debugSphereMesh;
+    private float lastDebugBallRadius = debugBallRadius;
+
+    private final Vector3f lastTransformPos = new Vector3f(Float.NaN);
+    private final Vector3f lastFieldPos = new Vector3f(Float.NaN);
+    private final Vector3f lastTransformRot = new Vector3f(Float.NaN);
 
     public LightComponent() {
-        this.light = new Light();
+        setLight(new Light());
     }
 
     public LightComponent(LightType type) {
-        this.light = new Light(type);
+        setLight(new Light(type));
     }
 
     public LightComponent(Light light) {
-        this.light = light != null ? light : new Light();
+        setLight(light);
     }
 
     public LightComponent(Vector3f position) {
-        this.light = new Light(position);
+        setLight(new Light(position));
     }
 
     public LightComponent(Vector3f position, LightType type) {
-        this.light = new Light(position, type);
+        setLight(new Light(position, type));
     }
 
     public LightComponent(Color color, float intensity) {
-        this.light = new Light(new Vector3f(10.0f, 20.0f, 15.0f), color, intensity);
+        setLight(new Light(new Vector3f(10.0f, 20.0f, 15.0f), color, intensity));
     }
 
     public LightComponent(Color color, float intensity, LightType type) {
-        this.light = new Light(new Vector3f(10.0f, 20.0f, 15.0f), color, intensity, type);
+        setLight(new Light(new Vector3f(10.0f, 20.0f, 15.0f), color, intensity, type));
     }
 
     public LightComponent(Vector3f position, Color color, float intensity) {
-        this.light = new Light(position, color, intensity);
+        setLight(new Light(position, color, intensity));
     }
 
     public LightComponent(Vector3f position, Color color, float intensity, LightType type) {
-        this.light = new Light(position, color, intensity, type);
+        setLight(new Light(position, color, intensity, type));
+    }
+
+    private void ensureLight() {
+        if (light == null) {
+            setLight(new Light());
+        }
+    }
+
+    private void pullFieldsFromLight() {
+        ensureLight();
+
+        lightType = light.getType();
+        lightPosition.set(light.getPosition());
+        lightDirection.set(light.getDirection());
+        lightColor = light.getColor() != null ? light.getColor() : Color.White;
+        lightIntensity = light.getIntensity();
+        ambientColor = light.getAmbientColor() != null ? light.getAmbientColor() : new Color(0.25f, 0.25f, 0.28f, 1.0f);
+        ambientIntensity = light.getAmbientIntensity();
+        specularIntensity = light.getSpecularIntensity();
+        shininess = light.getShininess();
+        cutOff = light.getCutOff();
+        outerCutOff = light.getOuterCutOff();
+    }
+
+    private void pushFieldsToLight() {
+        ensureLight();
+
+        light.setType(lightType);
+        light.setPosition(lightPosition);
+        light.setDirection(lightDirection);
+        light.setColor(lightColor != null ? lightColor : Color.White);
+        light.setIntensity(lightIntensity);
+        light.setAmbientColor(ambientColor != null ? ambientColor : new Color(0.25f, 0.25f, 0.28f, 1.0f));
+        light.setAmbientIntensity(ambientIntensity);
+        light.setSpecularIntensity(specularIntensity);
+        light.setShininess(shininess);
+        light.setCutOff(cutOff);
+        light.setOuterCutOff(outerCutOff);
+    }
+
+    private void syncTransform() {
+        ensureLight();
+
+        TransformComponent t = getTransform();
+        if (t != null && t.position != null) {
+            boolean hasLast = !Float.isNaN(lastTransformPos.x);
+            if (!hasLast) {
+                if (t.position.x != 0.0f || t.position.y != 0.0f || t.position.z != 0.0f) {
+                    lightPosition.set(t.position);
+                    light.setPosition(lightPosition);
+                } else {
+                    t.position.set(lightPosition);
+                    light.setPosition(lightPosition);
+                }
+                if (t.rotation != null && (t.rotation.x != 0.0f || t.rotation.y != 0.0f || t.rotation.z != 0.0f)) {
+                    float pitch = (float) Math.toRadians(t.rotation.x);
+                    float yaw = (float) Math.toRadians(t.rotation.y);
+                    Vector3f dir = new Vector3f(
+                        (float) (Math.cos(yaw) * Math.cos(pitch)),
+                        (float) Math.sin(pitch),
+                        (float) (Math.sin(yaw) * Math.cos(pitch))
+                    );
+                    if (dir.lengthSquared() > 0.0001f) {
+                        lightDirection.set(dir.normalize());
+                        light.setDirection(lightDirection);
+                    }
+                }
+            } else {
+                if (!t.position.equals(lastTransformPos)) {
+                    lightPosition.set(t.position);
+                    light.setPosition(lightPosition);
+                } else if (!lightPosition.equals(lastFieldPos)) {
+                    light.setPosition(lightPosition);
+                    t.position.set(lightPosition);
+                }
+
+                if (t.rotation != null && !t.rotation.equals(lastTransformRot)) {
+                    float pitch = (float) Math.toRadians(t.rotation.x);
+                    float yaw = (float) Math.toRadians(t.rotation.y);
+                    Vector3f dir = new Vector3f(
+                        (float) (Math.cos(yaw) * Math.cos(pitch)),
+                        (float) Math.sin(pitch),
+                        (float) (Math.sin(yaw) * Math.cos(pitch))
+                    );
+                    if (dir.lengthSquared() > 0.0001f) {
+                        lightDirection.set(dir.normalize());
+                        light.setDirection(lightDirection);
+                    }
+                }
+            }
+
+            lastTransformPos.set(t.position);
+            lastFieldPos.set(lightPosition);
+            if (t.rotation != null) {
+                lastTransformRot.set(t.rotation);
+            }
+        }
     }
 
     @Override
     public void onAdded() {
         super.onAdded();
-        if (light == null) {
-            light = new Light();
-        }
-        if (transform != null && transform.position != null) {
-            if (transform.position.x != 0.0f || transform.position.y != 0.0f || transform.position.z != 0.0f) {
-                light.setPosition(transform.position);
-            } else {
-                transform.position.set(light.getPosition());
-            }
+        syncTransform();
+
+        if (isCurrent) {
+            Renderer.addLight(light);
         }
     }
 
     @Override
     public void start() {
         super.start();
-        if (light == null) {
-            light = new Light();
-        }
-        if (transform != null && transform.position != null) {
-            if (transform.position.x != 0.0f || transform.position.y != 0.0f || transform.position.z != 0.0f) {
-                light.setPosition(transform.position);
-            } else {
-                transform.position.set(light.getPosition());
-            }
-        }
-        if (isCurrent || Renderer.getLight() == null) {
-            Renderer.setLight(light);
+        syncTransform();
+
+        if (isCurrent) {
+            Renderer.addLight(light);
         }
     }
 
     @Override
     public void update(float dt) {
         super.update(dt);
-        if (light == null) {
-            light = new Light();
+
+        ensureLight();
+        syncTransform();
+        pushFieldsToLight();
+
+        if (isCurrent && !Renderer.getLights().contains(light)) {
+            Renderer.addLight(light);
+        } else if (!isCurrent && Renderer.getLights().contains(light)) {
+            Renderer.removeLight(light);
         }
-        if (transform != null && transform.position != null) {
-            transform.position.set(light.getPosition());
+
+        if (lastDebugBallRadius != debugBallRadius) {
+            debugSphereMesh = null;
+            lastDebugBallRadius = debugBallRadius;
         }
-        if (isCurrent && Renderer.getLight() != light) {
-            Renderer.setLight(light);
+
+        if (drawDebugBall && isEnabled()) {
+            Color c = lightColor != null ? lightColor : Color.White;
+
+            if (debugSphereMesh == null) {
+                debugSphereMesh = Mesh.createSphere(debugBallRadius, 16, 16, c);
+            } else {
+                debugSphereMesh.setColor(c);
+            }
+
+            Renderer.drawMesh(debugSphereMesh, lightPosition);
         }
     }
 
     @Override
     public void onEnable() {
         super.onEnable();
+
         if (isCurrent) {
-            Renderer.setLight(light);
+            ensureLight();
+            Renderer.addLight(light);
         }
     }
 
     @Override
     public void onDisable() {
         super.onDisable();
-        if (Renderer.getLight() == light) {
-            Renderer.setLight(null);
-        }
+        Renderer.removeLight(light);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (Renderer.getLight() == light) {
-            Renderer.setLight(null);
-        }
+        Renderer.removeLight(light);
     }
 
     public void setCurrent() {
-        this.isCurrent = true;
-        if (light == null) {
-            light = new Light();
+        setCurrent(true);
+    }
+
+    public void setCurrent(boolean isCurrent) {
+        this.isCurrent = isCurrent;
+        ensureLight();
+
+        if (isCurrent) {
+            Renderer.addLight(light);
+        } else {
+            Renderer.removeLight(light);
         }
-        Renderer.setLight(light);
     }
 
     public boolean isCurrent() {
@@ -132,128 +262,215 @@ public class LightComponent extends Component {
     }
 
     public Light getLight() {
+        ensureLight();
+        pushFieldsToLight();
         return light;
     }
 
     public void setLight(Light light) {
+        if (this.light != null) {
+            Renderer.removeLight(this.light);
+        }
+
         this.light = light != null ? light : new Light();
+        pullFieldsFromLight();
+
         if (isCurrent) {
-            Renderer.setLight(this.light);
+            Renderer.addLight(this.light);
         }
     }
 
     public LightType getType() {
-        return light.getType();
+        return lightType;
     }
 
     public void setType(LightType type) {
-        light.setType(type);
+        if (type != null) {
+            this.lightType = type;
+        }
+
+        ensureLight();
+        light.setType(lightType);
     }
 
     public Vector3f getPosition() {
-        return light.getPosition();
+        return lightPosition;
     }
 
     public void setPosition(Vector3f pos) {
-        light.setPosition(pos);
-        if (transform != null && transform.position != null) {
-            transform.position.set(light.getPosition());
+        if (pos != null) {
+            lightPosition.set(pos);
         }
+
+        ensureLight();
+        light.setPosition(lightPosition);
+
+        TransformComponent t = getTransform();
+        if (t != null && t.position != null) {
+            t.position.set(lightPosition);
+            lastTransformPos.set(t.position);
+        }
+        lastFieldPos.set(lightPosition);
     }
 
     public Vector3f getDirection() {
-        return light.getDirection();
+        return lightDirection;
     }
 
     public void setDirection(Vector3f dir) {
-        light.setDirection(dir);
+        if (dir != null) {
+            lightDirection.set(dir);
+        }
+
+        ensureLight();
+        light.setDirection(lightDirection);
     }
 
     public Color getColor() {
-        return light.getColor();
+        return lightColor;
     }
 
     public void setColor(Color color) {
-        light.setColor(color);
+        this.lightColor = color != null ? color : Color.White;
+
+        ensureLight();
+        light.setColor(lightColor);
+
+        if (debugSphereMesh != null) {
+            debugSphereMesh.setColor(lightColor);
+        }
     }
 
     public float getIntensity() {
-        return light.getIntensity();
+        return lightIntensity;
     }
 
     public void setIntensity(float intensity) {
-        light.setIntensity(intensity);
+        this.lightIntensity = intensity;
+
+        ensureLight();
+        light.setIntensity(lightIntensity);
     }
 
     public Color getAmbientColor() {
-        return light.getAmbientColor();
+        return ambientColor;
     }
 
     public void setAmbientColor(Color ambientColor) {
-        light.setAmbientColor(ambientColor);
+        this.ambientColor = ambientColor != null ? ambientColor : new Color(0.25f, 0.25f, 0.28f, 1.0f);
+
+        ensureLight();
+        light.setAmbientColor(this.ambientColor);
     }
 
     public float getAmbientIntensity() {
-        return light.getAmbientIntensity();
+        return ambientIntensity;
     }
 
     public void setAmbientIntensity(float ambientIntensity) {
-        light.setAmbientIntensity(ambientIntensity);
+        this.ambientIntensity = ambientIntensity;
+
+        ensureLight();
+        light.setAmbientIntensity(this.ambientIntensity);
     }
 
     public float getSpecularIntensity() {
-        return light.getSpecularIntensity();
+        return specularIntensity;
     }
 
     public void setSpecularIntensity(float specularIntensity) {
-        light.setSpecularIntensity(specularIntensity);
+        this.specularIntensity = specularIntensity;
+
+        ensureLight();
+        light.setSpecularIntensity(this.specularIntensity);
     }
 
     public float getShininess() {
-        return light.getShininess();
+        return shininess;
     }
 
     public void setShininess(float shininess) {
-        light.setShininess(shininess);
+        this.shininess = shininess;
+
+        ensureLight();
+        light.setShininess(this.shininess);
     }
 
     public float getCutOff() {
-        return light.getCutOff();
+        return cutOff;
     }
 
     public void setCutOff(float cutOff) {
-        light.setCutOff(cutOff);
+        this.cutOff = cutOff;
+
+        ensureLight();
+        light.setCutOff(this.cutOff);
     }
 
     public void setCutOffDegrees(float degrees) {
-        light.setCutOffDegrees(degrees);
+        this.cutOff = (float) Math.cos(Math.toRadians(degrees));
+
+        ensureLight();
+        light.setCutOff(cutOff);
     }
 
     public float getOuterCutOff() {
-        return light.getOuterCutOff();
+        return outerCutOff;
     }
 
     public void setOuterCutOff(float outerCutOff) {
-        light.setOuterCutOff(outerCutOff);
+        this.outerCutOff = outerCutOff;
+
+        ensureLight();
+        light.setOuterCutOff(this.outerCutOff);
     }
 
     public void setOuterCutOffDegrees(float degrees) {
-        light.setOuterCutOffDegrees(degrees);
+        this.outerCutOff = (float) Math.cos(Math.toRadians(degrees));
+
+        ensureLight();
+        light.setOuterCutOff(outerCutOff);
     }
 
     public boolean isDirectional() {
-        return light.isDirectional();
+        return lightType == LightType.DIRECTIONAL;
     }
 
     public void setDirectional(boolean directional) {
-        light.setDirectional(directional);
+        setType(directional ? LightType.DIRECTIONAL : LightType.POINT);
     }
 
     public boolean isPoint() {
-        return light.isPoint();
+        return lightType == LightType.POINT;
     }
 
     public boolean isSpot() {
-        return light.isSpot();
+        return lightType == LightType.SPOT;
+    }
+
+    public void drawDebugBall(boolean value) {
+        this.drawDebugBall = value;
+    }
+
+    public void setDrawDebugBall(boolean value) {
+        this.drawDebugBall = value;
+    }
+
+    public boolean isDrawDebugBall() {
+        return drawDebugBall;
+    }
+
+    public boolean getDrawDebugBall() {
+        return drawDebugBall;
+    }
+
+    public float getDebugBallRadius() {
+        return debugBallRadius;
+    }
+
+    public void setDebugBallRadius(float debugBallRadius) {
+        this.debugBallRadius = debugBallRadius;
+        this.lastDebugBallRadius = debugBallRadius;
+        this.debugSphereMesh = null;
     }
 }
