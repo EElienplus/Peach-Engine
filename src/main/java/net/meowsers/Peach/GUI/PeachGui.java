@@ -2,7 +2,11 @@ package net.meowsers.Peach.GUI;
 
 import imgui.ImGui;
 import imgui.ImGuiIO;
+import imgui.extension.imguizmo.ImGuizmo;
+import imgui.extension.imguizmo.flag.Mode;
+import imgui.extension.imguizmo.flag.Operation;
 import imgui.flag.ImGuiConfigFlags;
+import imgui.flag.ImGuiSelectableFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import imgui.type.ImBoolean;
@@ -10,10 +14,18 @@ import imgui.type.ImFloat;
 import imgui.type.ImInt;
 import imgui.type.ImString;
 import net.meowsers.Peach.ECS.Component;
+import net.meowsers.Peach.ECS.Components.*;
 import net.meowsers.Peach.ECS.GameObject;
 import net.meowsers.Peach.GameEngine.Peach;
 import net.meowsers.Peach.GameEngine.PeachLevel;
+import net.meowsers.Peach.Graphics.Camera;
+import net.meowsers.Peach.Graphics.Renderer;
 import net.meowsers.Peach.Structures.Color;
+import net.meowsers.Peach.Structures.Components;
+import net.meowsers.Peach.Structures.Key;
+import net.meowsers.Peach.Structures.MouseButton;
+import net.meowsers.Peach.Utils.Input;
+import net.meowsers.Peach.Utils.Log;
 import net.meowsers.Peach.Utils.PeachException;
 import net.meowsers.Peach.Utils.Time;
 import org.joml.Vector2f;
@@ -29,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 public class PeachGui {
 
     private static final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
@@ -44,8 +55,11 @@ public class PeachGui {
         final Object[] constants;
         final String[] names;
 
-        EnumCache(Class<?> enumClass) {
-            this.constants = enumClass.getEnumConstants();
+        EnumCache(Class<?> rawClass) {
+            Class<?> enumClass = (rawClass != null && !rawClass.isEnum() && rawClass.getSuperclass() != null && rawClass.getSuperclass().isEnum())
+                    ? rawClass.getSuperclass()
+                    : rawClass;
+            this.constants = (enumClass != null) ? enumClass.getEnumConstants() : null;
             this.names = new String[this.constants != null ? this.constants.length : 0];
             if (this.constants != null) {
                 for (int i = 0; i < this.constants.length; i++) {
@@ -60,7 +74,25 @@ public class PeachGui {
     private static final float[] floatBuffer = new float[4];
     private static final int[] intBuffer = new int[4];
     private static final ImInt imIntBuffer = new ImInt();
+    private static final ImBoolean imBoolBuffer = new ImBoolean();
+    private static final ImString imStringBuffer = new ImString(512);
+    private static final ImString newGameObjectNameBuffer = new ImString(256);
+    private static final ImString goNameBuffer = new ImString(256);
     private static GameObject selectedGameObject = null;
+
+    // ImGuizmo state
+    private static final float MIN_SCALE = 0.001f;
+    private static int gizmoOperation = Operation.TRANSLATE;
+    private static int gizmoMode = Mode.LOCAL;
+    private static boolean gizmoSnap = false;
+    private static float gizmoSnapValue = 1.0f;
+    private static final float[] gizmoSnapValues = new float[]{1.0f, 1.0f, 1.0f};
+    private static final float[] gizmoMatrixBuffer = new float[16];
+    private static final float[] gizmoViewBuffer = new float[16];
+    private static final float[] gizmoProjBuffer = new float[16];
+    private static final float[] gizmoPosBuffer = new float[3];
+    private static final float[] gizmoRotBuffer = new float[3];
+    private static final float[] gizmoScaleBuffer = new float[3];
 
 
     public static void init(long windowHandle) {
@@ -69,6 +101,7 @@ public class PeachGui {
         ImGui.createContext();
         ImGuiIO io = ImGui.getIO();
         io.addConfigFlags(ImGuiConfigFlags.NavEnableKeyboard);
+        io.setConfigMacOSXBehaviors(System.getProperty("os.name", "").toLowerCase().contains("mac"));
 
         imGuiGlfw.init(windowHandle, true);
         imGuiGl3.init("#version 410 core");
@@ -76,11 +109,9 @@ public class PeachGui {
         ImGui.styleColorsDark();
         initialized = true;
     }
-
     public static void start(long windowHandle) {
         init(windowHandle);
     }
-
     /**
      * Starts a new ImGui frame and executes registered panel callbacks.
      */
@@ -90,6 +121,9 @@ public class PeachGui {
         imGuiGlfw.newFrame();
         imGuiGl3.newFrame();
         ImGui.newFrame();
+        ImGuizmo.beginFrame();
+
+        handleGizmoHotkeys();
 
         for (int i = 0; i < frameCallbacks.size(); i++) {
             Runnable callback = frameCallbacks.get(i);
@@ -102,7 +136,6 @@ public class PeachGui {
     public static void update() {
         newFrame();
     }
-
     public static void render() {
         if (!initialized) return;
 
@@ -124,23 +157,18 @@ public class PeachGui {
     public static boolean isInitialized() {
         return initialized;
     }
-
-
     public static boolean wantCaptureMouse() {
-        return initialized && ImGui.getIO().getWantCaptureMouse();
+        return initialized && (ImGui.getIO().getWantCaptureMouse() || ImGuizmo.isUsing() || ImGuizmo.isOver());
     }
-
     public static boolean wantCaptureKeyboard() {
         return initialized && ImGui.getIO().getWantCaptureKeyboard();
     }
-
 
     public static void registerPanel(Runnable callback) {
         if (callback != null && !frameCallbacks.contains(callback)) {
             frameCallbacks.add(callback);
         }
     }
-
     public static void unregisterPanel(Runnable callback) {
         frameCallbacks.remove(callback);
     }
@@ -150,7 +178,6 @@ public class PeachGui {
         if (content != null) content.run();
         ImGui.end();
     }
-
     public static void window(String title, ImBoolean open, Runnable content) {
         ImGui.begin(title, open);
         if (content != null) content.run();
@@ -189,26 +216,53 @@ public class PeachGui {
     }
     public static boolean checkbox(String label, boolean[] state) {
         if (state == null || state.length == 0) return false;
-        ImBoolean b = new ImBoolean(state[0]);
-        boolean changed = ImGui.checkbox(label, b);
+        imBoolBuffer.set(state[0]);
+        boolean changed = ImGui.checkbox(label, imBoolBuffer);
         if (changed) {
-            state[0] = b.get();
+            state[0] = imBoolBuffer.get();
         }
         return changed;
     }
 
-    public static boolean dropdown(String label, ImInt currentItem, List<String> items) {
-        if (currentItem == null || items == null) return false;
-        return ImGui.combo(label, currentItem, items.toArray(new String[0]));
-    }
-    public static boolean dropdown(String label, int[] currentItem, List<String> items) {
-        if (currentItem == null || currentItem.length == 0 || items == null) return false;
-        ImInt val = new ImInt(currentItem[0]);
-        boolean changed = ImGui.combo(label, val, items.toArray(new String[0]));
-        if (changed) {
-            currentItem[0] = val.get();
+    public static int dropdown(String label, int selectedIndex, List<String> items) {
+        if (items == null || items.isEmpty()) return selectedIndex;
+        int idx = (selectedIndex >= 0 && selectedIndex < items.size()) ? selectedIndex : 0;
+        imIntBuffer.set(idx);
+        if (ImGui.combo(label, imIntBuffer, items.toArray(new String[0]))) {
+            return imIntBuffer.get();
         }
-        return changed;
+        return selectedIndex;
+    }
+    public static int dropdown(String label, int selectedIndex, String... items) {
+        if (items == null || items.length == 0) return selectedIndex;
+        int idx = (selectedIndex >= 0 && selectedIndex < items.length) ? selectedIndex : 0;
+        imIntBuffer.set(idx);
+        if (ImGui.combo(label, imIntBuffer, items)) {
+            return imIntBuffer.get();
+        }
+        return selectedIndex;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <E extends Enum<E>> E dropdown(String label, Class<E> enumClass, E selected) {
+        if (enumClass == null) return selected;
+        EnumCache cache = enumCache.computeIfAbsent(enumClass, EnumCache::new);
+        if (cache.constants == null || cache.constants.length == 0) return selected;
+        int currentIndex = selected != null ? selected.ordinal() : 0;
+        if (currentIndex < 0 || currentIndex >= cache.constants.length) currentIndex = 0;
+        imIntBuffer.set(currentIndex);
+        if (ImGui.combo(label, imIntBuffer, cache.names)) {
+            int newIdx = imIntBuffer.get();
+            if (newIdx >= 0 && newIdx < cache.constants.length) {
+                return (E) cache.constants[newIdx];
+            }
+        }
+        return selected;
+    }
+
+    public static <E extends Enum<E>> E dropdown(String label, E selected) {
+        if (selected == null) return null;
+        return dropdown(label, selected.getDeclaringClass(), selected);
     }
 
     public static boolean selectable(String label, boolean selected) {
@@ -228,86 +282,90 @@ public class PeachGui {
 
     public static boolean dragFloat2(String label, Vector2f vec, float speed) {
         if (vec == null) return false;
-        float[] arr = new float[]{vec.x, vec.y};
-        boolean changed = ImGui.dragFloat2(label, arr, speed);
+        floatBuffer[0] = vec.x;
+        floatBuffer[1] = vec.y;
+        boolean changed = ImGui.dragFloat2(label, floatBuffer, speed);
         if (changed) {
-            vec.set(arr[0], arr[1]);
+            vec.set(floatBuffer[0], floatBuffer[1]);
         }
         return changed;
     }
     public static boolean dragFloat2(String label, Vector2f vec) {
         return dragFloat2(label, vec, 0.1f);
     }
-
     public static boolean dragFloat3(String label, Vector3f vec, float speed) {
         if (vec == null) return false;
-        float[] arr = new float[]{vec.x, vec.y, vec.z};
-        boolean changed = ImGui.dragFloat3(label, arr, speed);
+        floatBuffer[0] = vec.x;
+        floatBuffer[1] = vec.y;
+        floatBuffer[2] = vec.z;
+        boolean changed = ImGui.dragFloat3(label, floatBuffer, speed);
         if (changed) {
-            vec.set(arr[0], arr[1], arr[2]);
+            vec.set(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
         }
         return changed;
     }
     public static boolean dragFloat3(String label, Vector3f vec) {
         return dragFloat3(label, vec, 0.1f);
     }
-
     public static boolean dragFloat4(String label, Vector4f vec, float speed) {
         if (vec == null) return false;
-        float[] arr = new float[]{vec.x, vec.y, vec.z, vec.w};
-        boolean changed = ImGui.dragFloat4(label, arr, speed);
+        floatBuffer[0] = vec.x;
+        floatBuffer[1] = vec.y;
+        floatBuffer[2] = vec.z;
+        floatBuffer[3] = vec.w;
+        boolean changed = ImGui.dragFloat4(label, floatBuffer, speed);
         if (changed) {
-            vec.set(arr[0], arr[1], arr[2], arr[3]);
+            vec.set(floatBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]);
         }
         return changed;
     }
     public static boolean dragFloat4(String label, Vector4f vec) {
         return dragFloat4(label, vec, 0.1f);
     }
-
     public static boolean colorEdit3(String label, Color color) {
         if (color == null) return false;
-        float[] arr = new float[]{color.r, color.g, color.b};
-        boolean changed = ImGui.colorEdit3(label, arr);
+        floatBuffer[0] = color.r;
+        floatBuffer[1] = color.g;
+        floatBuffer[2] = color.b;
+        boolean changed = ImGui.colorEdit3(label, floatBuffer);
         if (changed) {
-            color.r = arr[0];
-            color.g = arr[1];
-            color.b = arr[2];
+            color.r = floatBuffer[0];
+            color.g = floatBuffer[1];
+            color.b = floatBuffer[2];
         }
         return changed;
     }
-
     public static boolean colorEdit4(String label, Color color) {
         if (color == null) return false;
-        float[] arr = new float[]{color.r, color.g, color.b, color.a};
-        boolean changed = ImGui.colorEdit4(label, arr);
+        floatBuffer[0] = color.r;
+        floatBuffer[1] = color.g;
+        floatBuffer[2] = color.b;
+        floatBuffer[3] = color.a;
+        boolean changed = ImGui.colorEdit4(label, floatBuffer);
         if (changed) {
-            color.r = arr[0];
-            color.g = arr[1];
-            color.b = arr[2];
-            color.a = arr[3];
+            color.r = floatBuffer[0];
+            color.g = floatBuffer[1];
+            color.b = floatBuffer[2];
+            color.a = floatBuffer[3];
         }
         return changed;
     }
-
     public static boolean colorEdit(String label, Color color) {
         return colorEdit4(label, color);
     }
 
     public static float dragFloat(String label, float val) {
-        float[] arr = new float[]{val};
-        ImGui.dragFloat(label, arr);
-        return arr[0];
+        floatBuffer[0] = val;
+        ImGui.dragFloat(label, floatBuffer);
+        return floatBuffer[0];
     }
 
     public static void separator() {
         ImGui.separator();
     }
-
     public static void sameLine() {
         ImGui.sameLine();
     }
-
     public static void spacing() {
         ImGui.spacing();
     }
@@ -328,7 +386,6 @@ public class PeachGui {
             return fields.toArray(new Field[0]);
         });
     }
-
     public static void drawFieldEditor(Field field, Object instance) throws IllegalAccessException {
         String label = field.getName();
         Class<?> type = field.getType();
@@ -340,16 +397,31 @@ public class PeachGui {
 
         ImGui.setNextItemWidth(180.0f);
 
+        Editor editorAnnot = field.getAnnotation(Editor.class);
+        boolean requirePositive = editorAnnot != null && "Positive".equalsIgnoreCase(editorAnnot.argument());
+
         if (type == float.class) {
             floatBuffer[0] = field.getFloat(instance);
-            if (ImGui.dragFloat("##val", floatBuffer, 0.1f)) {
+
+            float vMin = requirePositive ? 0.0f : -Float.MAX_VALUE;
+
+            if (ImGui.dragFloat("##val", floatBuffer, 0.1f, vMin, Float.MAX_VALUE)) {
+                if (requirePositive && floatBuffer[0] < 0.0f) {
+                    floatBuffer[0] = 0.0f;
+                }
                 field.setFloat(instance, floatBuffer[0]);
             }
         }
         else if (type == Float.class) {
             Object obj = field.get(instance);
             floatBuffer[0] = obj != null ? (Float) obj : 0.0f;
-            if (ImGui.dragFloat("##val", floatBuffer, 0.1f)) {
+
+            float vMin = requirePositive ? 0.0f : -Float.MAX_VALUE;
+
+            if (ImGui.dragFloat("##val", floatBuffer, 0.1f, vMin, Float.MAX_VALUE)) {
+                if (requirePositive && floatBuffer[0] < 0.0f) {
+                    floatBuffer[0] = 0.0f;
+                }
                 field.set(instance, floatBuffer[0]);
             }
         }
@@ -433,9 +505,9 @@ public class PeachGui {
         }
         else if (type == String.class) {
             Object strVal = field.get(instance);
-            ImString val = new ImString(strVal != null ? (String) strVal : "", 256);
-            if (ImGui.inputText("##val", val)) {
-                field.set(instance, val.get());
+            ImString fieldBuf = new ImString(strVal != null ? (String) strVal : "", 512);
+            if (ImGui.inputText("##val", fieldBuf)) {
+                field.set(instance, fieldBuf.get());
             }
         }
         else if (type == Color.class) {
@@ -449,8 +521,11 @@ public class PeachGui {
             floatBuffer[2] = color.b;
             floatBuffer[3] = color.a;
             if (ImGui.colorEdit4("##val", floatBuffer)) {
-                Color updated = new Color(floatBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]);
-                field.set(instance, updated);
+                color.r = floatBuffer[0];
+                color.g = floatBuffer[1];
+                color.b = floatBuffer[2];
+                color.a = floatBuffer[3];
+                field.set(instance, new Color(floatBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]));
             }
         }
         else if (type == Vector2f.class) {
@@ -475,6 +550,11 @@ public class PeachGui {
             floatBuffer[1] = vec.y;
             floatBuffer[2] = vec.z;
             if (ImGui.dragFloat3("##val", floatBuffer, 0.1f)) {
+                if (field.getName().equalsIgnoreCase("scale")) {
+                    floatBuffer[0] = Math.max(MIN_SCALE, floatBuffer[0]);
+                    floatBuffer[1] = Math.max(MIN_SCALE, floatBuffer[1]);
+                    floatBuffer[2] = Math.max(MIN_SCALE, floatBuffer[2]);
+                }
                 vec.set(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
             }
         }
@@ -553,24 +633,50 @@ public class PeachGui {
 
         ImGui.popID();
     }
-
     public static GameObject getSelectedGameObject() {
         return selectedGameObject;
     }
-
     public static void setSelectedGameObject(GameObject gameObject) {
         selectedGameObject = gameObject;
+    }
+
+    public static String inputField(String placeHolder, String label) {
+        ImString imString = new ImString();
+        ImGui.inputText(label, imString);
+        return imString.get();
+    }
+    public static boolean inputField(String label, ImString buffer) {
+        return ImGui.inputText(label, buffer);
     }
 
     public static void hierarchy(PeachLevel level) {
         if (level == null) return;
         window("Hierarchy", () -> {
             List<GameObject> gameObjects = level.getGameObjects();
+
+            // 1. Draw input text using dedicated buffer
+            ImGui.inputText("##NewGameObjectName", newGameObjectNameBuffer);
+
+            sameLine();
+
+            // 2. Read from buffer only when the button is pressed
+            if (button("Add")) {
+                String objectName = newGameObjectNameBuffer.get();
+                if (objectName.isEmpty()) {
+                    objectName = "GameObject"; // Fallback default
+                }
+                level.addGameObject(new GameObject(objectName));
+
+                // Clear the input box after creation
+                newGameObjectNameBuffer.set("");
+            }
+
             if (gameObjects == null || gameObjects.isEmpty()) {
                 ImGui.textDisabled("No GameObjects in level");
                 return;
             }
 
+            GameObject toDelete = null;
             for (GameObject gameObject : gameObjects) {
                 if (gameObject == null) continue;
                 ImGui.pushID(gameObject.hashCode());
@@ -580,11 +686,28 @@ public class PeachGui {
                         ? gameObject.name
                         : "GameObject";
 
-                if (ImGui.selectable(displayName, isSelected)) {
+                float deleteBtnWidth = 55.0f;
+                float availWidth = ImGui.getContentRegionAvailX();
+                float spacing = ImGui.getStyle().getItemSpacingX();
+                float selectableWidth = Math.max(20.0f, availWidth - deleteBtnWidth - spacing);
+
+                if (ImGui.selectable(displayName, isSelected, ImGuiSelectableFlags.AllowOverlap, selectableWidth, 0.0f)) {
                     selectedGameObject = gameObject;
                 }
 
+                sameLine();
+                if (ImGui.button("Delete##" + gameObject.hashCode(), deleteBtnWidth, 0.0f)) {
+                    toDelete = gameObject;
+                }
+
                 ImGui.popID();
+            }
+
+            if (toDelete != null) {
+                if (selectedGameObject == toDelete) {
+                    selectedGameObject = null;
+                }
+                level.removeGameObject(toDelete);
             }
         });
     }
@@ -600,10 +723,10 @@ public class PeachGui {
 
             ImGui.textColored(0.4f, 0.8f, 1.0f, 1.0f, "GameObject:");
             ImGui.sameLine();
-            ImString nameStr = new ImString(gameObject.name != null ? gameObject.name : "", 128);
+            goNameBuffer.set(gameObject.name != null ? gameObject.name : "");
             ImGui.setNextItemWidth(180.0f);
-            if (ImGui.inputText("##GOName", nameStr)) {
-                gameObject.name = nameStr.get();
+            if (ImGui.inputText("##GOName", goNameBuffer)) {
+                gameObject.name = goNameBuffer.get();
             }
 
             boolean active = gameObject.isActive();
@@ -617,17 +740,24 @@ public class PeachGui {
 
             List<Component> components = gameObject.getComponents();
             if (components != null) {
-                for (Component component : components) {
+                Component toRemove = null;
+                for (int i = 0; i < components.size(); i++) {
+                    Component component = components.get(i);
                     if (component == null) continue;
                     ImGui.pushID(component.hashCode());
 
                     ImGui.textColored(0.9f, 0.9f, 0.4f, 1.0f, "• " + component.getName());
+                    sameLine();
+                    if (button("Remove##" + component.hashCode())) {
+                        toRemove = component;
+                    }
 
                     Field[] fields = getEditorFields(component.getClass());
                     if (fields.length == 0) {
                         ImGui.textDisabled("  No editable fields");
                     } else {
-                        for (Field field : fields) {
+                        for (int fi = 0; fi < fields.length; fi++) {
+                            Field field = fields[fi];
                             try {
                                 drawFieldEditor(field, component);
                             } catch (IllegalAccessException e) {
@@ -640,20 +770,32 @@ public class PeachGui {
                     ImGui.separator();
                     ImGui.popID();
                 }
+
+                if (toRemove != null) {
+                    gameObject.removeComponent(toRemove);
+                }
+            }
+
+            Components selectedComponent = dropdown("Add Component", Components.class, Components.Empty);
+            if(selectedComponent != Components.Empty && !gameObject.hasComponent(selectedComponent.getComponentString())) {
+                switch (selectedComponent) {
+                    case Components.Transform -> gameObject.addComponent(new TransformComponent());
+                    case Components.MeshRenderer -> gameObject.addComponent(new MeshRendererComponent());
+                    case Components.Camera -> gameObject.addComponent(new CameraComponent());
+                    case Components.Light -> gameObject.addComponent(new LightComponent());
+                    case Components.CubeCollider -> gameObject.addComponent(new CubeColliderComponent());
+                }
             }
 
             ImGui.popID();
         });
     }
-
     public static void inspector() {
         inspector(selectedGameObject);
     }
-
     public static void inspector(PeachLevel level) {
         inspector(selectedGameObject);
     }
-
 
     public static void showStats() {
         window("Engine Stats", () -> {
@@ -664,5 +806,179 @@ public class PeachGui {
             long usedMem = totalMem - freeMem;
             text("Memory: %d MB / %d MB", usedMem, totalMem);
         });
+    }
+
+    private static void handleGizmoHotkeys() {
+        if (!initialized) return;
+        ImGuiIO io = ImGui.getIO();
+        if (io.getWantTextInput()) return;
+        if (Input.isMouseButtonDown(MouseButton.RIGHT)) return;
+
+        if (Input.isKeyPressed(Key.NUM_1) || Input.isKeyPressed(Key.W)) {
+            gizmoOperation = Operation.TRANSLATE;
+        } else if (Input.isKeyPressed(Key.NUM_2) || Input.isKeyPressed(Key.E)) {
+            gizmoOperation = Operation.ROTATE;
+        } else if (Input.isKeyPressed(Key.NUM_3) || Input.isKeyPressed(Key.R)) {
+            gizmoOperation = Operation.SCALE;
+        } else if (Input.isKeyPressed(Key.NUM_4) || Input.isKeyPressed(Key.T)) {
+            gizmoOperation = Operation.UNIVERSAL;
+        }
+    }
+    public static void gizmoToolbar() {
+        window("Gizmo Controls", () -> {
+            ImGui.text("Operation:");
+            if (ImGui.radioButton("Translate (1)", gizmoOperation == Operation.TRANSLATE)) {
+                gizmoOperation = Operation.TRANSLATE;
+            }
+            ImGui.sameLine();
+            if (ImGui.radioButton("Rotate (2)", gizmoOperation == Operation.ROTATE)) {
+                gizmoOperation = Operation.ROTATE;
+            }
+            ImGui.sameLine();
+            if (ImGui.radioButton("Scale (3)", gizmoOperation == Operation.SCALE)) {
+                gizmoOperation = Operation.SCALE;
+            }
+            ImGui.sameLine();
+            if (ImGui.radioButton("Universal (4)", gizmoOperation == Operation.UNIVERSAL)) {
+                gizmoOperation = Operation.UNIVERSAL;
+            }
+
+            ImGui.separator();
+            ImGui.text("Mode:");
+            if (ImGui.radioButton("Local", gizmoMode == Mode.LOCAL)) {
+                gizmoMode = Mode.LOCAL;
+            }
+            ImGui.sameLine();
+            if (ImGui.radioButton("World", gizmoMode == Mode.WORLD)) {
+                gizmoMode = Mode.WORLD;
+            }
+
+            ImGui.separator();
+            if (ImGui.checkbox("Snap", gizmoSnap)) {
+                gizmoSnap = !gizmoSnap;
+            }
+            if (gizmoSnap) {
+                ImGui.sameLine();
+                floatBuffer[0] = gizmoSnapValue;
+                ImGui.setNextItemWidth(80.0f);
+                if (ImGui.dragFloat("##SnapVal", floatBuffer, 0.1f, 0.01f, 100.0f)) {
+                    gizmoSnapValue = floatBuffer[0];
+                    gizmoSnapValues[0] = floatBuffer[0];
+                    gizmoSnapValues[1] = floatBuffer[0];
+                    gizmoSnapValues[2] = floatBuffer[0];
+                }
+            }
+        });
+    }
+    public static void gizmo(GameObject gameObject) {
+        gizmo(gameObject, Renderer.getCamera());
+    }
+    public static void gizmo(GameObject gameObject, Camera camera) {
+        if (gameObject == null || !gameObject.isActive()) return;
+        TransformComponent transform = gameObject.transform;
+        if (transform == null && gameObject.hasComponent(TransformComponent.class)) {
+            transform = gameObject.getComponent(TransformComponent.class);
+        }
+        if (transform != null) {
+            gizmo(transform, camera);
+        }
+    }
+    public static void gizmo(TransformComponent transform) {
+        gizmo(transform, Renderer.getCamera());
+    }
+    public static void gizmo(TransformComponent transform, Camera camera) {
+        drawGizmo(transform, camera, gizmoOperation, gizmoMode, gizmoSnap, gizmoSnapValues);
+    }
+    public static void drawGizmo(TransformComponent transform, Camera camera, int operation, int mode, boolean snap, float[] snapValues) {
+        if (transform == null || camera == null || !initialized) return;
+        if (transform.position == null || transform.rotation == null || transform.scale == null) return;
+
+        ImGuizmo.setOrthographic(false);
+        ImGuizmo.enable(true);
+        ImGuizmo.setDrawList(ImGui.getForegroundDrawList());
+
+        float displayW = ImGui.getIO().getDisplaySizeX();
+        float displayH = ImGui.getIO().getDisplaySizeY();
+        ImGuizmo.setRect(0.0f, 0.0f, displayW, displayH);
+
+        camera.getViewMatrix().get(gizmoViewBuffer);
+        camera.getProjectionMatrix().get(gizmoProjBuffer);
+
+        gizmoPosBuffer[0] = transform.position.x;
+        gizmoPosBuffer[1] = transform.position.y;
+        gizmoPosBuffer[2] = transform.position.z;
+
+        gizmoRotBuffer[0] = transform.rotation.x;
+        gizmoRotBuffer[1] = transform.rotation.y;
+        gizmoRotBuffer[2] = transform.rotation.z;
+
+        gizmoScaleBuffer[0] = Math.max(MIN_SCALE, transform.scale.x);
+        gizmoScaleBuffer[1] = Math.max(MIN_SCALE, transform.scale.y);
+        gizmoScaleBuffer[2] = Math.max(MIN_SCALE, transform.scale.z);
+
+        ImGuizmo.recomposeMatrixFromComponents(gizmoPosBuffer, gizmoRotBuffer, gizmoScaleBuffer, gizmoMatrixBuffer);
+
+        if (snap && snapValues != null && snapValues.length >= 3) {
+            ImGuizmo.manipulate(gizmoViewBuffer, gizmoProjBuffer, operation, mode, gizmoMatrixBuffer, null, snapValues);
+        } else {
+            ImGuizmo.manipulate(gizmoViewBuffer, gizmoProjBuffer, operation, mode, gizmoMatrixBuffer);
+        }
+
+        if (ImGuizmo.isUsing()) {
+            ImGuizmo.decomposeMatrixToComponents(gizmoMatrixBuffer, gizmoPosBuffer, gizmoRotBuffer, gizmoScaleBuffer);
+            gizmoScaleBuffer[0] = Math.max(MIN_SCALE, gizmoScaleBuffer[0]);
+            gizmoScaleBuffer[1] = Math.max(MIN_SCALE, gizmoScaleBuffer[1]);
+            gizmoScaleBuffer[2] = Math.max(MIN_SCALE, gizmoScaleBuffer[2]);
+            transform.position.set(gizmoPosBuffer[0], gizmoPosBuffer[1], gizmoPosBuffer[2]);
+            transform.rotation.set(gizmoRotBuffer[0], gizmoRotBuffer[1], gizmoRotBuffer[2]);
+            transform.scale.set(gizmoScaleBuffer[0], gizmoScaleBuffer[1], gizmoScaleBuffer[2]);
+        }
+    }
+    public static int getGizmoOperation() {
+        return gizmoOperation;
+    }
+    public static void setGizmoOperation(int operation) {
+        gizmoOperation = operation;
+    }
+    public static int getGizmoMode() {
+        return gizmoMode;
+    }
+    public static void setGizmoMode(int mode) {
+        gizmoMode = mode;
+    }
+    public static boolean isGizmoSnap() {
+        return gizmoSnap;
+    }
+    public static void setGizmoSnap(boolean snap) {
+        gizmoSnap = snap;
+    }
+    public static float getGizmoSnapValue() {
+        return gizmoSnapValue;
+    }
+    public static void setGizmoSnapValue(float snapValue) {
+        gizmoSnapValue = snapValue;
+        gizmoSnapValues[0] = snapValue;
+        gizmoSnapValues[1] = snapValue;
+        gizmoSnapValues[2] = snapValue;
+    }
+    public static float[] getGizmoSnapValues() {
+        return gizmoSnapValues;
+    }
+    public static boolean isGizmoUsing() {
+        return initialized && ImGuizmo.isUsing();
+    }
+    public static boolean isGizmoOver() {
+        return initialized && ImGuizmo.isOver();
+    }
+
+    public static void debugEditor(PeachLevel level) {
+        debugEditor(level, Renderer.getCamera());
+    }
+    public static void debugEditor(PeachLevel level, Camera camera) {
+        hierarchy(level);
+        inspector();
+        gizmoToolbar();
+        showStats();
+        gizmo(selectedGameObject, camera);
     }
 }

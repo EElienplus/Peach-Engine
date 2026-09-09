@@ -8,7 +8,7 @@ import org.joml.Vector3f;
 
 public class CameraComponent extends BehaviorComponent {
 
-    private Camera camera;
+    private transient Camera camera;
 
     @Editor private boolean isCurrent = false;
     @Editor private boolean handleMovement = true;
@@ -19,15 +19,15 @@ public class CameraComponent extends BehaviorComponent {
     @Editor public float cameraFov = 60.0f;
     @Editor public float cameraNear = 0.1f;
     @Editor public float cameraFar = 10000.0f;
-    @Editor public float cameraAspectRatio = 16.0f / 9.0f;
+    public float cameraAspectRatio = 16.0f / 9.0f;
     @Editor public boolean rightClickToLook = true;
 
     @Editor public float movementSpeed = 10.0f;
     @Editor public float cameraSensitivity = 0.1f;
 
-    private final Vector3f lastTransformPos = new Vector3f(Float.NaN);
-    private final Vector3f lastFieldPos = new Vector3f(Float.NaN);
-    private final Vector3f lastTransformRot = new Vector3f(Float.NaN);
+    private final transient Vector3f lastTransformPos = new Vector3f(Float.NaN);
+    private final transient Vector3f lastFieldPos = new Vector3f(Float.NaN);
+    private final transient Vector3f lastTransformRot = new Vector3f(Float.NaN);
     private float lastPitch = Float.NaN;
     private float lastYaw = Float.NaN;
 

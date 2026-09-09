@@ -4,6 +4,10 @@ public class Color {
 
     public float r, g, b, a;
 
+    public Color() {
+        this(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
     public Color(float val) {
         this(val, val, val, 1.f);
     }
@@ -17,6 +21,70 @@ public class Color {
         this.g = g;
         this.b = b;
         this.a = a;
+    }
+
+    public Color(Color other) {
+        if (other != null) {
+            this.r = other.r;
+            this.g = other.g;
+            this.b = other.b;
+            this.a = other.a;
+        } else {
+            this.r = 1.0f;
+            this.g = 1.0f;
+            this.b = 1.0f;
+            this.a = 1.0f;
+        }
+    }
+
+    public Color copy() {
+        return new Color(this.r, this.g, this.b, this.a);
+    }
+
+    public Color set(Color other) {
+        if (other != null) {
+            this.r = other.r;
+            this.g = other.g;
+            this.b = other.b;
+            this.a = other.a;
+        }
+        return this;
+    }
+
+    public Color set(float r, float g, float b, float a) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+        return this;
+    }
+
+    public Color set(float r, float g, float b) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Color color = (Color) o;
+        return Float.compare(color.r, r) == 0 &&
+               Float.compare(color.g, g) == 0 &&
+               Float.compare(color.b, b) == 0 &&
+               Float.compare(color.a, a) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(r, g, b, a);
+    }
+
+    @Override
+    public String toString() {
+        return "Color{" + "r=" + r + ", g=" + g + ", b=" + b + ", a=" + a + '}';
     }
 
 

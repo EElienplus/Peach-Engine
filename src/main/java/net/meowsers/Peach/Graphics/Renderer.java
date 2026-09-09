@@ -24,9 +24,11 @@ public class Renderer {
     public static final int MAX_LIGHTS = 16;
     private static final List<Light> lights = new ArrayList<>();
     private static boolean lightingEnabled = true;
+    private static Color ambientColor = new Color(0.25f, 0.25f, 0.28f, 1.0f);
+    private static float ambientIntensity = 0.35f;
 
     static {
-        lights.add(new Light(new Vector3f(10.0f, 20.0f, 15.0f), Color.White, 1.0f));
+        lights.add(new Light(new Vector3f(10.0f, 20.0f, 15.0f), new Color(1.0f, 1.0f, 1.0f, 1.0f), 1.0f));
     }
 
     private static boolean cullingEnabled = true;
@@ -36,6 +38,11 @@ public class Renderer {
 
     private static final Matrix4f projectionMatrix = new Matrix4f();
     private static final Matrix4f viewMatrix = new Matrix4f().identity();
+
+    private static final int[] texSlots = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    private static final Vector3f DEFAULT_LIGHT_DIR = new Vector3f(0.0f, -1.0f, 0.0f);
+    private static final Matrix4f tempTransform = new Matrix4f();
+    private static final Matrix4f tempCombined = new Matrix4f();
 
     public static void init(long window) {
         windowHandle = window;
@@ -171,6 +178,24 @@ public class Renderer {
 
     public static void setLightingEnabled(boolean enabled) {
         lightingEnabled = enabled;
+    }
+
+    public static Color getAmbientColor() {
+        return ambientColor;
+    }
+
+    public static void setAmbientColor(Color ambientColor) {
+        if (ambientColor != null) {
+            Renderer.ambientColor = new Color(ambientColor);
+        }
+    }
+
+    public static float getAmbientIntensity() {
+        return ambientIntensity;
+    }
+
+    public static void setAmbientIntensity(float ambientIntensity) {
+        Renderer.ambientIntensity = ambientIntensity;
     }
 
     public static void setCulling(boolean enabled) {
@@ -393,7 +418,7 @@ public class Renderer {
     }
 
     public static void drawMesh(Mesh mesh, List<Texture> textures, Matrix4f transform) {
-        if (mesh == null || mesh.getVertices().isEmpty()) return;
+        if (mesh == null || mesh.getVertices().isEmpty() || (windowHandle == 0 && batches.isEmpty())) return;
 
         List<Texture> effectiveTextures = textures != null && !textures.isEmpty()
                 ? textures
@@ -524,15 +549,15 @@ public class Renderer {
     }
 
     public static void drawMesh(Mesh mesh, List<Texture> textures, Vector3f position, Vector3f rotation, Vector3f scale) {
-        Matrix4f transform = new Matrix4f();
-        if (position != null) transform.translate(position);
+        tempTransform.identity();
+        if (position != null) tempTransform.translate(position);
         if (rotation != null) {
-            transform.rotate((float) Math.toRadians(rotation.x), 1, 0, 0);
-            transform.rotate((float) Math.toRadians(rotation.y), 0, 1, 0);
-            transform.rotate((float) Math.toRadians(rotation.z), 0, 0, 1);
+            tempTransform.rotate((float) Math.toRadians(rotation.x), 1, 0, 0);
+            tempTransform.rotate((float) Math.toRadians(rotation.y), 0, 1, 0);
+            tempTransform.rotate((float) Math.toRadians(rotation.z), 0, 0, 1);
         }
-        if (scale != null) transform.scale(scale);
-        drawMesh(mesh, textures, transform);
+        if (scale != null) tempTransform.scale(scale);
+        drawMesh(mesh, textures, tempTransform);
     }
 
     public static void drawMesh(Mesh mesh, Vector3f position, Vector3f rotation, Vector3f scale, Texture... textures) {
@@ -579,7 +604,7 @@ public class Renderer {
         if (model == null) return;
 
         Matrix4f modelMat = model.getModelMatrix();
-        Matrix4f combined = transform != null ? new Matrix4f(transform).mul(modelMat) : modelMat;
+        Matrix4f combined = transform != null ? tempCombined.set(transform).mul(modelMat) : modelMat;
 
         List<Mesh> meshes = model.getMeshes();
         for (int i = 0; i < meshes.size(); i++) {
@@ -612,15 +637,15 @@ public class Renderer {
     }
 
     public static void drawModel(Model model, List<Texture> textures, Vector3f position, Vector3f rotation, Vector3f scale) {
-        Matrix4f transform = new Matrix4f();
-        if (position != null) transform.translate(position);
+        tempTransform.identity();
+        if (position != null) tempTransform.translate(position);
         if (rotation != null) {
-            transform.rotate((float) Math.toRadians(rotation.x), 1, 0, 0);
-            transform.rotate((float) Math.toRadians(rotation.y), 0, 1, 0);
-            transform.rotate((float) Math.toRadians(rotation.z), 0, 0, 1);
+            tempTransform.rotate((float) Math.toRadians(rotation.x), 1, 0, 0);
+            tempTransform.rotate((float) Math.toRadians(rotation.y), 0, 1, 0);
+            tempTransform.rotate((float) Math.toRadians(rotation.z), 0, 0, 1);
         }
-        if (scale != null) transform.scale(scale);
-        drawModel(model, textures, transform);
+        if (scale != null) tempTransform.scale(scale);
+        drawModel(model, textures, tempTransform);
     }
 
     public static void drawModel(Model model, Vector3f position, Vector3f rotation, Vector3f scale, Texture... textures) {
@@ -642,7 +667,6 @@ public class Renderer {
         shader.uploadMatrix4f("uProjection", projectionMatrix);
         shader.uploadMatrix4f("uView", viewMatrix);
 
-        int[] texSlots = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
         shader.uploadIntArray("uTextures", texSlots);
 
         shader.uploadInt("uNormalCulling", normalCullingEnabled ? 1 : 0);
@@ -658,10 +682,11 @@ public class Renderer {
             shader.uploadInt("uUseLighting", 1);
             shader.uploadInt("uNumLights", numLights);
 
-            Light firstLight = lights.get(0);
-            Color aColor = (firstLight != null && firstLight.getAmbientColor() != null) ? firstLight.getAmbientColor() : Color.White;
+            Light firstLight = !lights.isEmpty() ? lights.get(0) : null;
+            Color aColor = (firstLight != null && firstLight.getAmbientColor() != null) ? firstLight.getAmbientColor() : ambientColor;
+            float aIntensity = firstLight != null ? firstLight.getAmbientIntensity() : ambientIntensity;
             shader.uploadVec3f("uAmbientColor", aColor.r, aColor.g, aColor.b);
-            shader.uploadFloat("uAmbientIntensity", firstLight != null ? firstLight.getAmbientIntensity() : 0.1f);
+            shader.uploadFloat("uAmbientIntensity", aIntensity);
 
             for (int i = 0; i < numLights; i++) {
                 Light l = lights.get(i);
@@ -669,7 +694,7 @@ public class Renderer {
                 shader.uploadInt("uLightType[" + i + "]", l.getType() != null ? l.getType().getId() : (l.isDirectional() ? 1 : 0));
                 shader.uploadInt("uIsDirectional[" + i + "]", l.isDirectional() ? 1 : 0);
                 shader.uploadVec3f("uLightPos[" + i + "]", l.getPosition());
-                shader.uploadVec3f("uLightDir[" + i + "]", l.getDirection() != null ? l.getDirection() : new org.joml.Vector3f(0.0f, -1.0f, 0.0f));
+                shader.uploadVec3f("uLightDir[" + i + "]", l.getDirection() != null ? l.getDirection() : DEFAULT_LIGHT_DIR);
                 shader.uploadFloat("uLightIntensity[" + i + "]", l.getIntensity());
                 Color lColor = l.getColor() != null ? l.getColor() : Color.White;
                 shader.uploadVec4f("uLightColor[" + i + "]", lColor.r, lColor.g, lColor.b, lColor.a);
@@ -684,7 +709,8 @@ public class Renderer {
         }
 
         int drawCalls = 0;
-        for (RenderBatch batch : batches) {
+        for (int i = 0; i < batches.size(); i++) {
+            RenderBatch batch = batches.get(i);
             if (batch.flush()) {
                 drawCalls++;
             }

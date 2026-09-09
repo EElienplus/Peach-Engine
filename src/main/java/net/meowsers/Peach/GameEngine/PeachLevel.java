@@ -3,6 +3,7 @@ package net.meowsers.Peach.GameEngine;
 import net.meowsers.Peach.ECS.Component;
 import net.meowsers.Peach.ECS.GameObject;
 import net.meowsers.Peach.Graphics.Renderer;
+import net.meowsers.Peach.Serialization.PeachSerializer;
 import net.meowsers.Peach.Structures.Color;
 import net.meowsers.Peach.Utils.Log;
 
@@ -15,6 +16,10 @@ public abstract class PeachLevel {
     private final List<GameObject> gameObjects = new ArrayList<>();
     private boolean started = false;
 
+    public boolean isStarted() {
+        return started;
+    }
+
     public void addGameObject(GameObject go) {
         if (go != null && !gameObjects.contains(go)) {
             gameObjects.add(go);
@@ -24,7 +29,6 @@ public abstract class PeachLevel {
             }
         }
     }
-
     public GameObject addGameObject(GameObject go, Component... components) {
         if (go == null) return null;
         if (components != null) {
@@ -37,23 +41,26 @@ public abstract class PeachLevel {
         addGameObject(go);
         return go;
     }
-
     public GameObject createGameObject(String name, Component... components) {
         GameObject go = new GameObject(name, components);
         addGameObject(go);
         return go;
     }
-
     public GameObject createGameObject(Component... components) {
         return createGameObject("GameObject", components);
     }
-
     public void removeGameObject(GameObject go) {
-        if (go != null) {
-            gameObjects.remove(go);
+        if (go != null && gameObjects.remove(go)) {
+            go.destroy();
         }
     }
-
+    public void clearGameObjects() {
+        List<GameObject> toDestroy = new ArrayList<>(gameObjects);
+        for (GameObject go : toDestroy) {
+            go.destroy();
+        }
+        gameObjects.clear();
+    }
     public GameObject findGameObject(String name) {
         if (name == null) return null;
         for (GameObject go : gameObjects) {
@@ -63,7 +70,6 @@ public abstract class PeachLevel {
         }
         return null;
     }
-
     public <T extends Component> T findComponentOfType(Class<T> componentClass) {
         if (componentClass == null) return null;
         for (GameObject go : gameObjects) {
@@ -74,7 +80,6 @@ public abstract class PeachLevel {
         }
         return null;
     }
-
     public <T extends Component> List<T> findComponentsOfType(Class<T> componentClass) {
         if (componentClass == null) return Collections.emptyList();
         List<T> list = new ArrayList<>();
@@ -83,21 +88,17 @@ public abstract class PeachLevel {
         }
         return list;
     }
-
     public List<GameObject> getGameObjects() {
         return gameObjects;
     }
-
     public List<GameObject> setGameObjects() {
         return List.of();
     }
 
     public void start() {
     }
-
     public void update(float dt) {
     }
-
     public void destroy() {
     }
 
@@ -116,22 +117,24 @@ public abstract class PeachLevel {
             gameObjects.get(i).start();
         }
     }
-
     public void internalUpdate(float dt) {
         for (int i = 0; i < gameObjects.size(); i++) {
             gameObjects.get(i).update(dt);
         }
     }
-
     public void internalDestroy() {
         started = false;
-        for (int i = 0; i < gameObjects.size(); i++) {
-            gameObjects.get(i).destroy();
-        }
-        gameObjects.clear();
+        clearGameObjects();
     }
 
     public void setClearColor(Color color) {
         Renderer.setBgColor(color);
+    }
+
+    public void save(String filePath) {
+        PeachSerializer.saveLevel(filePath, this);
+    }
+    public List<GameObject> load(String filePath) {
+        return PeachSerializer.loadLevel(filePath, this);
     }
 }

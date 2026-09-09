@@ -14,13 +14,13 @@ import java.util.function.Consumer;
 
 public class GameObject {
 
-    private final List<Component> components;
+    private List<Component> components;
     public TransformComponent transform;
 
     public String name;
     private boolean started = false;
     private boolean active = true;
-    private PeachLevel level;
+    private transient PeachLevel level;
 
     public GameObject(String name) {
         this.name = name;
@@ -185,8 +185,12 @@ public class GameObject {
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Component> T addComponent(T component) {
         if (component == null) return null;
+        if (component.getClass() != BehaviorComponent.class && hasComponent(component.getClass())) {
+            return (T) getComponent(component.getClass());
+        }
         component.setGameObject(this);
         if (component instanceof TransformComponent) {
             this.transform = (TransformComponent) component;

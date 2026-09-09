@@ -13,6 +13,7 @@ import static org.lwjgl.stb.STBImage.*;
 public class Texture {
     private final int textureID;
     private int width, height;
+    private String filepath;
 
     public Texture(int width, int height, ByteBuffer buffer) {
         this.width = width;
@@ -51,6 +52,7 @@ public class Texture {
     }
 
     public Texture(String filepath) {
+        this.filepath = filepath;
         String resolvedPath = resolveFilePath(filepath);
         IntBuffer w = BufferUtils.createIntBuffer(1);
         IntBuffer h = BufferUtils.createIntBuffer(1);
@@ -121,6 +123,14 @@ public class Texture {
 
     public int getHeight() {
         return height;
+    }
+
+    public String getFilepath() {
+        return filepath;
+    }
+
+    public void setFilepath(String filepath) {
+        this.filepath = filepath;
     }
 
     public void destroy() {

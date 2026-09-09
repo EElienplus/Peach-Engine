@@ -1,13 +1,17 @@
 package net.meowsers.Peach.Graphics;
 
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import net.meowsers.Peach.Structures.Color;
 import net.meowsers.Peach.Structures.Vertex;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.lwjgl.BufferUtils;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -17,10 +21,13 @@ import static org.lwjgl.opengl.GL30.*;
 public class RenderBatch {
     public static final int MAX_BATCH_SIZE = 50000;
     public static final int MAX_INDICES = 250000;
-    private final Vertex[] vertices;
+
+    private final float[] vertexData = new float[MAX_BATCH_SIZE * Vertex.ELEMENT_SIZE];
+    private final FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(MAX_BATCH_SIZE * Vertex.ELEMENT_SIZE);
     private int vertexCount = 0;
 
-    private final int[] indices;
+    private final int[] indices = new int[MAX_INDICES];
+    private final IntBuffer indexBuffer = BufferUtils.createIntBuffer(MAX_INDICES);
     private int indexCount = 0;
 
     private int vaoID, vboID, eboID;
@@ -29,9 +36,11 @@ public class RenderBatch {
     private boolean hasRoom = true;
     private final Texture whiteTexture;
 
+    private final int[] slotMap = new int[16];
+    private final Vector4f tempPos = new Vector4f();
+    private final Vector3f tempNorm = new Vector3f();
+
     public RenderBatch(Texture whiteTexture) {
-        this.vertices = new Vertex[MAX_BATCH_SIZE];
-        this.indices = new int[MAX_INDICES];
         this.textures = new Texture[16];
         this.whiteTexture = whiteTexture;
         this.textures[0] = whiteTexture;
@@ -141,30 +150,46 @@ public class RenderBatch {
     public void addVertices(List<Vertex> verts, List<Texture> texturesList) {
         if (verts == null || verts.isEmpty()) return;
 
-        int[] slotMap = null;
+        boolean hasSlotMap = false;
         if (texturesList != null && !texturesList.isEmpty()) {
-            slotMap = new int[texturesList.size()];
-            for (int i = 0; i < texturesList.size(); i++) {
+            hasSlotMap = true;
+            for (int i = 0; i < texturesList.size() && i < 16; i++) {
                 slotMap[i] = (int) addTexture(texturesList.get(i));
             }
         }
 
         int baseOffset = vertexCount;
-        for (Vertex v : verts) {
+        for (int vi = 0; vi < verts.size(); vi++) {
             if (vertexCount >= MAX_BATCH_SIZE) break;
-            Vertex copy = new Vertex(v);
-            if (slotMap != null) {
-                int tid = (int) copy.texID;
-                if (tid >= 0 && tid < slotMap.length) {
-                    copy.texID = (float) slotMap[tid];
+            Vertex v = verts.get(vi);
+
+            float tid = 0.0f;
+            if (hasSlotMap) {
+                int rawTid = (int) v.texID;
+                if (rawTid >= 0 && rawTid < texturesList.size()) {
+                    tid = (float) slotMap[rawTid];
                 } else {
-                    copy.texID = (float) slotMap[0];
+                    tid = (float) slotMap[0];
                 }
-            } else {
-                copy.texID = 0.0f;
             }
-            vertices[vertexCount++] = copy;
+
+            int offset = vertexCount * Vertex.ELEMENT_SIZE;
+            vertexData[offset + 0] = v.x;
+            vertexData[offset + 1] = v.y;
+            vertexData[offset + 2] = v.z;
+            vertexData[offset + 3] = v.nx;
+            vertexData[offset + 4] = v.ny;
+            vertexData[offset + 5] = v.nz;
+            vertexData[offset + 6] = v.r;
+            vertexData[offset + 7] = v.g;
+            vertexData[offset + 8] = v.b;
+            vertexData[offset + 9] = v.a;
+            vertexData[offset + 10] = v.u;
+            vertexData[offset + 11] = v.v;
+            vertexData[offset + 12] = tid;
+            vertexCount++;
         }
+
         int count = verts.size();
         if (count % 4 == 0) {
             for (int i = 0; i < count; i += 4) {
@@ -204,12 +229,12 @@ public class RenderBatch {
                 ? texturesOverride
                 : mesh.getTextures();
 
-        int[] slotMap = null;
+        boolean hasSlotMap = false;
         float fallbackSlot = 0.0f;
 
         if (activeTextures != null && !activeTextures.isEmpty()) {
-            slotMap = new int[activeTextures.size()];
-            for (int i = 0; i < activeTextures.size(); i++) {
+            hasSlotMap = true;
+            for (int i = 0; i < activeTextures.size() && i < 16; i++) {
                 slotMap[i] = (int) addTexture(activeTextures.get(i));
             }
             fallbackSlot = (float) slotMap[0];
@@ -217,47 +242,77 @@ public class RenderBatch {
             fallbackSlot = addTexture(mesh.getTexture());
         }
 
-        int baseOffset = vertexCount;
-        for (Vertex v : meshVerts) {
-            if (vertexCount >= MAX_BATCH_SIZE) break;
-            Vertex vert = new Vertex(v);
-            if (transform != null) {
-                Vector4f pos = new Vector4f(vert.x, vert.y, vert.z, 1.0f);
-                transform.transform(pos);
-                vert.x = pos.x;
-                vert.y = pos.y;
-                vert.z = pos.z;
+        Color meshColor = mesh.getColor();
+        boolean hasMeshColor = meshColor != null;
 
-                Vector3f norm = new Vector3f(vert.nx, vert.ny, vert.nz);
-                transform.transformDirection(norm).normalize();
-                vert.nx = norm.x;
-                vert.ny = norm.y;
-                vert.nz = norm.z;
+        int baseOffset = vertexCount;
+        for (int vi = 0; vi < meshVerts.size(); vi++) {
+            if (vertexCount >= MAX_BATCH_SIZE) break;
+            Vertex v = meshVerts.get(vi);
+
+            float vx = v.x;
+            float vy = v.y;
+            float vz = v.z;
+            float vnx = v.nx;
+            float vny = v.ny;
+            float vnz = v.nz;
+
+            if (transform != null) {
+                tempPos.set(vx, vy, vz, 1.0f);
+                transform.transform(tempPos);
+                vx = tempPos.x;
+                vy = tempPos.y;
+                vz = tempPos.z;
+
+                tempNorm.set(vnx, vny, vnz);
+                transform.transformDirection(tempNorm).normalize();
+                vnx = tempNorm.x;
+                vny = tempNorm.y;
+                vnz = tempNorm.z;
             }
-            if (mesh.getColor() != null && (vert.r == 1.0f && vert.g == 1.0f && vert.b == 1.0f && vert.a == 1.0f)) {
-                vert.r = mesh.getColor().r;
-                vert.g = mesh.getColor().g;
-                vert.b = mesh.getColor().b;
-                vert.a = mesh.getColor().a;
+
+            float vr = v.r;
+            float vg = v.g;
+            float vb = v.b;
+            float va = v.a;
+
+            if (hasMeshColor && (vr == 1.0f && vg == 1.0f && vb == 1.0f && va == 1.0f)) {
+                vr = meshColor.r;
+                vg = meshColor.g;
+                vb = meshColor.b;
+                va = meshColor.a;
             }
-            if (slotMap != null) {
-                int tid = (int) vert.texID;
-                if (tid >= 0 && tid < slotMap.length) {
-                    vert.texID = (float) slotMap[tid];
-                } else {
-                    vert.texID = fallbackSlot;
+
+            float tid = fallbackSlot;
+            if (hasSlotMap) {
+                int rawTid = (int) v.texID;
+                if (rawTid >= 0 && rawTid < activeTextures.size() && rawTid < 16) {
+                    tid = (float) slotMap[rawTid];
                 }
-            } else {
-                vert.texID = fallbackSlot;
             }
-            vertices[vertexCount++] = vert;
+
+            int offset = vertexCount * Vertex.ELEMENT_SIZE;
+            vertexData[offset + 0] = vx;
+            vertexData[offset + 1] = vy;
+            vertexData[offset + 2] = vz;
+            vertexData[offset + 3] = vnx;
+            vertexData[offset + 4] = vny;
+            vertexData[offset + 5] = vnz;
+            vertexData[offset + 6] = vr;
+            vertexData[offset + 7] = vg;
+            vertexData[offset + 8] = vb;
+            vertexData[offset + 9] = va;
+            vertexData[offset + 10] = v.u;
+            vertexData[offset + 11] = v.v;
+            vertexData[offset + 12] = tid;
+            vertexCount++;
         }
 
         List<Integer> meshIndices = mesh.getIndices();
         if (!meshIndices.isEmpty()) {
-            for (int idx : meshIndices) {
+            for (int i = 0; i < meshIndices.size(); i++) {
                 if (indexCount >= MAX_INDICES) break;
-                indices[indexCount++] = baseOffset + idx;
+                indices[indexCount++] = baseOffset + meshIndices.get(i);
             }
         } else {
             int count = meshVerts.size();
@@ -297,18 +352,17 @@ public class RenderBatch {
 
         glBindVertexArray(vaoID);
 
-        float[] floatBuffer = new float[vertexCount * Vertex.ELEMENT_SIZE];
-        for (int i = 0; i < vertexCount; i++) {
-            vertices[i].write(floatBuffer, i * Vertex.ELEMENT_SIZE);
-        }
-
+        vertexBuffer.clear();
+        vertexBuffer.put(vertexData, 0, vertexCount * Vertex.ELEMENT_SIZE);
+        vertexBuffer.flip();
         glBindBuffer(GL_ARRAY_BUFFER, vboID);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, floatBuffer);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertexBuffer);
 
-        int[] indexSubBuffer = new int[indexCount];
-        System.arraycopy(indices, 0, indexSubBuffer, 0, indexCount);
+        indexBuffer.clear();
+        indexBuffer.put(indices, 0, indexCount);
+        indexBuffer.flip();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboID);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexSubBuffer);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexBuffer);
 
         for (int i = 0; i < 16; i++) {
             if (textures[i] != null) {

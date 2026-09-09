@@ -83,6 +83,9 @@ dependencies {
     implementation("io.github.spair:imgui-java-natives-windows:$imguiVersion")
     implementation("io.github.spair:imgui-java-natives-linux:$imguiVersion")
     implementation("io.github.spair:imgui-java-natives-macos:$imguiVersion")
+
+    // GSON
+    implementation("com.google.code.gson:gson:2.14.0")
 }
 
 tasks.withType<Test> {
@@ -98,7 +101,7 @@ tasks.register<JavaExec>("setupSlang") {
     group = "setup"
     description = "Downloads and sets up the portable Slang compiler for the current platform if not present"
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("net.meowsers.Peach.Graphics.SlangManager")
+    mainClass.set("net.meowsers.Peach.Utils.SlangManager")
 }
 
 tasks.register<JavaExec>("runPeach") {

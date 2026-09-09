@@ -9,20 +9,20 @@ import java.util.function.Consumer;
 
 public class BehaviorComponent extends Component {
 
-    private ComponentUpdater updater;
-    private ComponentBehavior behavior;
-    private Runnable onStartAction;
-    private Consumer<GameObject> onStartBehavior;
-    private Runnable onDestroyAction;
-    private Consumer<GameObject> onDestroyBehavior;
-    private Runnable onEnableAction;
-    private Consumer<GameObject> onEnableBehavior;
-    private Runnable onDisableAction;
-    private Consumer<GameObject> onDisableBehavior;
-    private Runnable onAddedAction;
-    private Consumer<GameObject> onAddedBehavior;
-    private Runnable onRemovedAction;
-    private Consumer<GameObject> onRemovedBehavior;
+    private transient ComponentUpdater updater;
+    private transient ComponentBehavior behavior;
+    private transient Runnable onStartAction;
+    private transient Consumer<GameObject> onStartBehavior;
+    private transient Runnable onDestroyAction;
+    private transient Consumer<GameObject> onDestroyBehavior;
+    private transient Runnable onEnableAction;
+    private transient Consumer<GameObject> onEnableBehavior;
+    private transient Runnable onDisableAction;
+    private transient Consumer<GameObject> onDisableBehavior;
+    private transient Runnable onAddedAction;
+    private transient Consumer<GameObject> onAddedBehavior;
+    private transient Runnable onRemovedAction;
+    private transient Consumer<GameObject> onRemovedBehavior;
 
     public BehaviorComponent() {
     }

@@ -30,6 +30,14 @@ public class Vertex {
         this.texID = other.texID;
     }
 
+    public void set(Vertex other) {
+        this.x = other.x; this.y = other.y; this.z = other.z;
+        this.nx = other.nx; this.ny = other.ny; this.nz = other.nz;
+        this.r = other.r; this.g = other.g; this.b = other.b; this.a = other.a;
+        this.u = other.u; this.v = other.v;
+        this.texID = other.texID;
+    }
+
     public Vertex(float x, float y, float z, float u, float v) {
         this(x, y, z, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, u, v);
     }

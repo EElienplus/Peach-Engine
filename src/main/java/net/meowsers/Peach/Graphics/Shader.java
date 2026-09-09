@@ -20,6 +20,8 @@ import static org.lwjgl.opengl.GL20.*;
 public class Shader {
     private final int shaderProgramId;
     private boolean beingUsed = false;
+    private final FloatBuffer matBuffer = BufferUtils.createFloatBuffer(16);
+    private final java.util.Map<String, Integer> uniformLocationCache = new java.util.HashMap<>();
 
     /**
      * Single Slang file constructor. Compiles vertex and fragment stages
@@ -289,17 +291,22 @@ public class Shader {
     }
 
     private int getUniformLocation(String varName) {
+        Integer cached = uniformLocationCache.get(varName);
+        if (cached != null) {
+            return cached;
+        }
         int varLocation = glGetUniformLocation(shaderProgramId, varName);
         if (varLocation == -1) {
             varLocation = glGetUniformLocation(shaderProgramId, varName + "_0");
         }
+        uniformLocationCache.put(varName, varLocation);
         return varLocation;
     }
 
     public void uploadMatrix4f(String varName, Matrix4f mat4) {
         int varLocation = getUniformLocation(varName);
         use();
-        FloatBuffer matBuffer = BufferUtils.createFloatBuffer(16);
+        matBuffer.clear();
         mat4.get(matBuffer);
         glUniformMatrix4fv(varLocation, true, matBuffer);
     }

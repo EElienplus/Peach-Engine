@@ -20,13 +20,14 @@ import static org.lwjgl.assimp.Assimp.*;
 public class Model {
     private String filepath;
     private String name = "Model";
-    private final List<Mesh> meshes = new ArrayList<>();
-    private final List<Texture> textures = new ArrayList<>();
+    private List<Mesh> meshes = new ArrayList<>();
+    private List<Texture> textures = new ArrayList<>();
 
-    private final Matrix4f transform = new Matrix4f().identity();
-    private final Vector3f position = new Vector3f(0, 0, 0);
-    private final Vector3f rotation = new Vector3f(0, 0, 0); // In degrees or radians
-    private final Vector3f scale = new Vector3f(1, 1, 1);
+    private Matrix4f transform = new Matrix4f().identity();
+    private transient Matrix4f modelMatrix = new Matrix4f();
+    private Vector3f position = new Vector3f(0, 0, 0);
+    private Vector3f rotation = new Vector3f(0, 0, 0); // In degrees or radians
+    private Vector3f scale = new Vector3f(1, 1, 1);
 
     public static final int DEFAULT_FLAGS =
             aiProcess_Triangulate |
@@ -279,54 +280,145 @@ public class Model {
     public static String resolveFilePath(String filePath) {
         if (filePath == null) return null;
 
-        String expanded = filePath;
-        if (expanded.startsWith("~")) {
-            expanded = System.getProperty("user.home", "") + expanded.substring(1);
+        String expanded = filePath.trim();
+        while ((expanded.startsWith("\"") && expanded.endsWith("\"")) ||
+               (expanded.startsWith("'") && expanded.endsWith("'")) ||
+               (expanded.startsWith("“") && expanded.endsWith("”")) ||
+               (expanded.startsWith("‘") && expanded.endsWith("’"))) {
+            if (expanded.length() <= 2) return null;
+            expanded = expanded.substring(1, expanded.length() - 1).trim();
+        }
+        if (expanded.isEmpty()) return null;
+
+        if (expanded.startsWith("file://")) {
+            expanded = expanded.substring(7);
+        } else if (expanded.startsWith("file:")) {
+            expanded = expanded.substring(5);
         }
 
-        File file = new File(expanded);
-        if (file.exists()) {
-            return file.getAbsolutePath();
-        }
+        expanded = expanded.replace('\\', '/').replaceAll("/+", "/");
 
-        File directFile = new File(filePath);
-        if (directFile.exists()) {
-            return directFile.getAbsolutePath();
-        }
-
-        // Check Desktop directory
         String userHome = System.getProperty("user.home", "");
-        File desktopFile = new File(userHome, "Desktop/" + filePath);
-        if (desktopFile.exists()) {
-            return desktopFile.getAbsolutePath();
+        if (expanded.startsWith("~")) {
+            expanded = userHome + expanded.substring(1);
         }
 
-        File desktopName = new File(userHome, "Desktop/" + new File(filePath).getName());
-        if (desktopName.exists()) {
-            return desktopName.getAbsolutePath();
+        String fileName = new File(expanded).getName();
+        String withoutLeadingSlash = expanded.startsWith("/") ? expanded.substring(1) : expanded;
+
+        String[] candidateBases = new String[] {
+            expanded,
+            withoutLeadingSlash,
+            fileName,
+            "src/main/resources/" + withoutLeadingSlash,
+            "src/main/resources/Models/" + withoutLeadingSlash,
+            "src/main/resources/Models/" + fileName,
+            "src/main/resources/" + fileName,
+            "assets/" + withoutLeadingSlash,
+            "assets/Models/" + withoutLeadingSlash,
+            withoutLeadingSlash.replaceFirst("^assets/", "src/main/resources/"),
+            withoutLeadingSlash.replaceFirst("^resources/", "src/main/resources/"),
+            withoutLeadingSlash.replaceFirst("^main/resources/", "src/main/resources/"),
+            userHome + "/Desktop/" + withoutLeadingSlash,
+            userHome + "/Desktop/" + fileName,
+            userHome + "/Downloads/" + withoutLeadingSlash,
+            userHome + "/Downloads/" + fileName,
+            userHome + "/Documents/" + withoutLeadingSlash,
+            userHome + "/Documents/" + fileName
+        };
+
+        String[] extensions = new String[] { "", ".obj", ".gltf", ".glb", ".fbx", ".dae", ".stl", ".ply", ".3ds" };
+
+        for (String base : candidateBases) {
+            if (base == null || base.isEmpty()) continue;
+            for (String ext : extensions) {
+                String fullPath = base.endsWith(ext) ? base : base + ext;
+                File f = new File(fullPath);
+                if (f.exists() && f.isFile()) {
+                    return f.getAbsolutePath();
+                }
+            }
         }
 
-        File resFile = new File("src/main/resources/" + filePath);
-        if (resFile.exists()) {
-            return resFile.getAbsolutePath();
+        // Case-insensitive search in src/main/resources/Models and src/main/resources
+        File modelsDir = new File("src/main/resources/Models");
+        if (modelsDir.exists() && modelsDir.isDirectory()) {
+            File[] files = modelsDir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.isFile()) {
+                        String nameWithoutExt = f.getName().replaceFirst("\\.[^.]+$", "");
+                        if (f.getName().equalsIgnoreCase(fileName) ||
+                            nameWithoutExt.equalsIgnoreCase(fileName) ||
+                            f.getName().equalsIgnoreCase(expanded) ||
+                            nameWithoutExt.equalsIgnoreCase(expanded)) {
+                            return f.getAbsolutePath();
+                        }
+                    }
+                }
+            }
         }
 
-        File resModelsFile = new File("src/main/resources/Models/" + filePath);
-        if (resModelsFile.exists()) {
-            return resModelsFile.getAbsolutePath();
+        File resDir = new File("src/main/resources");
+        if (resDir.exists() && resDir.isDirectory()) {
+            File found = findFileRecursive(resDir, fileName);
+            if (found != null) {
+                return found.getAbsolutePath();
+            }
         }
 
-        File resModelsName = new File("src/main/resources/Models/" + new File(filePath).getName());
-        if (resModelsName.exists()) {
-            return resModelsName.getAbsolutePath();
+        File assetsDir = new File("assets");
+        if (assetsDir.exists() && assetsDir.isDirectory()) {
+            File found = findFileRecursive(assetsDir, fileName);
+            if (found != null) {
+                return found.getAbsolutePath();
+            }
         }
 
-        File altRes = new File(filePath.replaceFirst("^assets/", "src/main/resources/"));
-        if (altRes.exists()) {
-            return altRes.getAbsolutePath();
+        File srcDir = new File("src");
+        if (srcDir.exists() && srcDir.isDirectory()) {
+            File found = findFileRecursive(srcDir, fileName);
+            if (found != null) {
+                return found.getAbsolutePath();
+            }
+        }
+
+        File rootDir = new File(".");
+        File foundInRoot = findFileRecursive(rootDir, fileName);
+        if (foundInRoot != null) {
+            return foundInRoot.getAbsolutePath();
+        }
+
+        File f = new File(expanded);
+        if (f.exists() && f.isFile()) {
+            return f.getAbsolutePath();
         }
 
         return expanded;
+    }
+
+    private static File findFileRecursive(File dir, String targetName) {
+        if (dir == null || !dir.isDirectory() || targetName == null || targetName.isEmpty()) return null;
+        String dirName = dir.getName();
+        if (dirName.startsWith(".") || dirName.equals("build") || dirName.equals(".gradle") ||
+            dirName.equals(".git") || dirName.equals(".idea") || dirName.equals("gradle") ||
+            dirName.equals("out") || dirName.equals("target")) {
+            return null;
+        }
+        File[] files = dir.listFiles();
+        if (files == null) return null;
+        for (File f : files) {
+            if (f.isFile()) {
+                String nameWithoutExt = f.getName().replaceFirst("\\.[^.]+$", "");
+                if (f.getName().equalsIgnoreCase(targetName) || nameWithoutExt.equalsIgnoreCase(targetName)) {
+                    return f;
+                }
+            } else if (f.isDirectory()) {
+                File found = findFileRecursive(f, targetName);
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     public List<Mesh> getMeshes() {
@@ -463,18 +555,26 @@ public class Model {
     }
 
     public Matrix4f getModelMatrix() {
-        Matrix4f mat = new Matrix4f();
-        mat.translate(position);
-        mat.rotate((float) Math.toRadians(rotation.x), 1, 0, 0);
-        mat.rotate((float) Math.toRadians(rotation.y), 0, 1, 0);
-        mat.rotate((float) Math.toRadians(rotation.z), 0, 0, 1);
-        mat.scale(scale);
-        mat.mul(transform);
-        return mat;
+        modelMatrix.identity();
+        modelMatrix.translate(position);
+        modelMatrix.rotate((float) Math.toRadians(rotation.x), 1, 0, 0);
+        modelMatrix.rotate((float) Math.toRadians(rotation.y), 0, 1, 0);
+        modelMatrix.rotate((float) Math.toRadians(rotation.z), 0, 0, 1);
+        modelMatrix.scale(scale);
+        modelMatrix.mul(transform);
+        return modelMatrix;
     }
 
     public String getFilepath() {
         return filepath;
+    }
+
+    public void setFilepath(String filepath) {
+        this.filepath = filepath;
+    }
+
+    public void setMeshes(List<Mesh> meshes) {
+        this.meshes = meshes != null ? new ArrayList<>(meshes) : new ArrayList<>();
     }
 
     public String getName() {

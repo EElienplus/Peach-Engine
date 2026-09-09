@@ -8,7 +8,7 @@ public class Light {
     private LightType type = LightType.POINT;
     private final Vector3f position = new Vector3f(10.0f, 20.0f, 15.0f);
     private final Vector3f direction = new Vector3f(0.0f, -1.0f, 0.0f);
-    private Color color = Color.White;
+    private Color color = new Color(1.0f, 1.0f, 1.0f, 1.0f);
     private float intensity = 1.0f;
     private Color ambientColor = new Color(0.25f, 0.25f, 0.28f, 1.0f);
     private float ambientIntensity = 0.35f;
@@ -46,7 +46,7 @@ public class Light {
             this.position.set(position);
         }
         if (color != null) {
-            this.color = color;
+            this.color = new Color(color);
         }
     }
 
@@ -55,7 +55,7 @@ public class Light {
             this.position.set(position);
         }
         if (color != null) {
-            this.color = color;
+            this.color = new Color(color);
         }
         this.intensity = intensity;
     }
@@ -111,7 +111,7 @@ public class Light {
 
     public void setColor(Color color) {
         if (color != null) {
-            this.color = color;
+            this.color = new Color(color);
         }
     }
 
@@ -129,7 +129,7 @@ public class Light {
 
     public void setAmbientColor(Color ambientColor) {
         if (ambientColor != null) {
-            this.ambientColor = ambientColor;
+            this.ambientColor = new Color(ambientColor);
         }
     }
 

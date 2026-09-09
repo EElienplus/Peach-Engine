@@ -11,8 +11,8 @@ import java.util.function.Consumer;
 
 public abstract class Component {
 
-    public GameObject gameObject;
-    public TransformComponent transform;
+    public transient GameObject gameObject;
+    public transient TransformComponent transform;
     private boolean isEnabled = true;
     private String name;
 

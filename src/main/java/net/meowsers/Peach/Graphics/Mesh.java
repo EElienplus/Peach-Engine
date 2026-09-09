@@ -13,10 +13,10 @@ import java.util.List;
 
 public class Mesh {
     private String name = "Mesh";
-    private final List<Vertex> vertices = new ArrayList<>();
-    private final List<Integer> indices = new ArrayList<>();
+    private List<Vertex> vertices = new ArrayList<>();
+    private List<Integer> indices = new ArrayList<>();
     private Texture texture;
-    private final List<Texture> textures = new ArrayList<>();
+    private List<Texture> textures = new ArrayList<>();
     private Color color = Color.White;
 
     public Mesh() {
@@ -800,7 +800,7 @@ public class Mesh {
     }
 
     public void setColor(Color color) {
-        this.color = color != null ? color : Color.White;
+        this.color = color != null ? new Color(color) : new Color(1.0f, 1.0f, 1.0f, 1.0f);
         for (Vertex v : vertices) {
             v.r = this.color.r;
             v.g = this.color.g;

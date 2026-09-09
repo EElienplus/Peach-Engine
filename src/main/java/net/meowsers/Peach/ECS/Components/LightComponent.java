@@ -10,7 +10,7 @@ import org.joml.Vector3f;
 
 public class LightComponent extends BehaviorComponent {
 
-    private Light light;
+    private transient Light light;
 
     @Editor private boolean isCurrent = true;
     @Editor private boolean drawDebugBall = true;
@@ -18,22 +18,22 @@ public class LightComponent extends BehaviorComponent {
     @Editor public LightType lightType = LightType.POINT;
     @Editor public Vector3f lightPosition = new Vector3f(10.0f, 20.0f, 15.0f);
     @Editor public Vector3f lightDirection = new Vector3f(0.0f, -1.0f, 0.0f);
-    @Editor public Color lightColor = Color.White;
-    @Editor public float lightIntensity = 1.0f;
+    @Editor public Color lightColor = new Color(1.0f, 1.0f, 1.0f, 1.0f);
+    @Editor(argument = "Positive") public float lightIntensity = 1.0f;
     @Editor public Color ambientColor = new Color(0.25f, 0.25f, 0.28f, 1.0f);
-    @Editor public float ambientIntensity = 0.35f;
-    @Editor public float specularIntensity = 0.5f;
-    @Editor public float shininess = 32.0f;
-    @Editor public float cutOff = 0.91f;
-    @Editor public float outerCutOff = 0.82f;
-    @Editor public float debugBallRadius = 0.5f;
+    @Editor(argument = "Positive") public float ambientIntensity = 0.35f;
+    @Editor(argument = "Positive") public float specularIntensity = 0.5f;
+    @Editor(argument = "Positive") public float shininess = 32.0f;
+    @Editor(argument = "Positive") public float cutOff = 0.91f;
+    @Editor(argument = "Positive") public float outerCutOff = 0.82f;
+    public float debugBallRadius = 0.5f;
 
-    private Mesh debugSphereMesh;
+    private transient Mesh debugSphereMesh;
     private float lastDebugBallRadius = debugBallRadius;
 
-    private final Vector3f lastTransformPos = new Vector3f(Float.NaN);
-    private final Vector3f lastFieldPos = new Vector3f(Float.NaN);
-    private final Vector3f lastTransformRot = new Vector3f(Float.NaN);
+    private final transient Vector3f lastTransformPos = new Vector3f(Float.NaN);
+    private final transient Vector3f lastFieldPos = new Vector3f(Float.NaN);
+    private final transient Vector3f lastTransformRot = new Vector3f(Float.NaN);
 
     public LightComponent() {
         setLight(new Light());
@@ -83,9 +83,9 @@ public class LightComponent extends BehaviorComponent {
         lightType = light.getType();
         lightPosition.set(light.getPosition());
         lightDirection.set(light.getDirection());
-        lightColor = light.getColor() != null ? light.getColor() : Color.White;
+        lightColor = light.getColor() != null ? new Color(light.getColor()) : new Color(1.0f, 1.0f, 1.0f, 1.0f);
         lightIntensity = light.getIntensity();
-        ambientColor = light.getAmbientColor() != null ? light.getAmbientColor() : new Color(0.25f, 0.25f, 0.28f, 1.0f);
+        ambientColor = light.getAmbientColor() != null ? new Color(light.getAmbientColor()) : new Color(0.25f, 0.25f, 0.28f, 1.0f);
         ambientIntensity = light.getAmbientIntensity();
         specularIntensity = light.getSpecularIntensity();
         shininess = light.getShininess();
@@ -99,7 +99,7 @@ public class LightComponent extends BehaviorComponent {
         light.setType(lightType);
         light.setPosition(lightPosition);
         light.setDirection(lightDirection);
-        light.setColor(lightColor != null ? lightColor : Color.White);
+        light.setColor(lightColor != null ? lightColor : new Color(1.0f, 1.0f, 1.0f, 1.0f));
         light.setIntensity(lightIntensity);
         light.setAmbientColor(ambientColor != null ? ambientColor : new Color(0.25f, 0.25f, 0.28f, 1.0f));
         light.setAmbientIntensity(ambientIntensity);
@@ -237,9 +237,27 @@ public class LightComponent extends BehaviorComponent {
     }
 
     @Override
+    public void onRemoved() {
+        super.onRemoved();
+        if (light != null) {
+            Renderer.removeLight(light);
+        }
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
-        Renderer.removeLight(light);
+        if (light != null) {
+            Renderer.removeLight(light);
+        }
+    }
+
+    @Override
+    public void destroy() {
+        super.destroy();
+        if (light != null) {
+            Renderer.removeLight(light);
+        }
     }
 
     public void setCurrent() {
@@ -331,7 +349,7 @@ public class LightComponent extends BehaviorComponent {
     }
 
     public void setColor(Color color) {
-        this.lightColor = color != null ? color : Color.White;
+        this.lightColor = color != null ? new Color(color) : new Color(1.0f, 1.0f, 1.0f, 1.0f);
 
         ensureLight();
         light.setColor(lightColor);
@@ -357,7 +375,7 @@ public class LightComponent extends BehaviorComponent {
     }
 
     public void setAmbientColor(Color ambientColor) {
-        this.ambientColor = ambientColor != null ? ambientColor : new Color(0.25f, 0.25f, 0.28f, 1.0f);
+        this.ambientColor = ambientColor != null ? new Color(ambientColor) : new Color(0.25f, 0.25f, 0.28f, 1.0f);
 
         ensureLight();
         light.setAmbientColor(this.ambientColor);

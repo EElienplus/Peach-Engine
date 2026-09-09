@@ -24,6 +24,7 @@ public class Camera {
 
     private final Matrix4f viewMatrix = new Matrix4f();
     private final Matrix4f projectionMatrix = new Matrix4f();
+    private final Vector3f target = new Vector3f();
 
     private double lastMouseX = 0.0;
     private double lastMouseY = 0.0;
@@ -51,19 +52,19 @@ public class Camera {
     }
 
     public void updateCameraVectors() {
-        Vector3f newFront = new Vector3f();
-        newFront.x = (float) (Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
-        newFront.y = (float) Math.sin(Math.toRadians(pitch));
-        newFront.z = (float) (Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
-        front.set(newFront.normalize());
+        front.x = (float) (Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
+        front.y = (float) Math.sin(Math.toRadians(pitch));
+        front.z = (float) (Math.sin(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));
+        front.normalize();
 
-        right.set(new Vector3f(front).cross(worldUp).normalize());
-        up.set(new Vector3f(right).cross(front).normalize());
+        front.cross(worldUp, right).normalize();
+        right.cross(front, up).normalize();
     }
 
     public Matrix4f getViewMatrix() {
         updateCameraVectors();
-        return viewMatrix.identity().lookAt(position, new Vector3f(position).add(front), up);
+        position.add(front, target);
+        return viewMatrix.identity().lookAt(position, target, up);
     }
 
     public Matrix4f getProjectionMatrix() {
@@ -135,7 +136,7 @@ public class Camera {
             }
         }
 
-        if (guiCapturesKeyboard) {
+        if (guiCapturesKeyboard || (rightClickToLook && !isRmbDown)) {
             return;
         }
 
