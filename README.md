@@ -19,6 +19,13 @@ see some quick examples. I might try to add some more test/example levels in the
 the main file or something. But to actually 'import it' or use it. You can use files from the `net.meowsers.peach` 
 package
 
+### Note about shaders:
+Since we're using OpenGL here, I have to deal with shaders. I didn't really feel like dealing with glsl though,
+I went the Slang route. If you delete the glsl shader files in the `resources/Shaders/cashe` or for some other reason 
+want to recompile the shaders. You will need the slang compiler. I have conveniently provided a gradle task that will 
+set up everything automatically for you. Just run `setup/setupSlang` and it will download and configure everything as 
+to how it's needed :)
+
 ### PS: 
 I don't like doing readmes. It's so dumb, but at least I've got something, am I right.
 So do with this project as you will
