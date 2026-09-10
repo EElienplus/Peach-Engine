@@ -25,7 +25,6 @@ public class Mesh {
     public Mesh(String name) {
         this.name = name;
     }
-
     public Mesh(List<Vertex> vertices, List<Integer> indices, Texture texture) {
         if (vertices != null) {
             for (Vertex v : vertices) {
@@ -37,7 +36,6 @@ public class Mesh {
         }
         setTexture(texture);
     }
-
     public Mesh(List<Vertex> vertices, List<Integer> indices, List<Texture> textures) {
         if (vertices != null) {
             for (Vertex v : vertices) {
@@ -49,27 +47,21 @@ public class Mesh {
         }
         setTextures(textures);
     }
-
     public Mesh(List<Vertex> vertices, List<Integer> indices, Texture... textures) {
         this(vertices, indices, textures != null ? Arrays.asList(textures) : null);
     }
-
     public Mesh(List<Vertex> vertices, List<Integer> indices) {
         this(vertices, indices, (Texture) null);
     }
-
     public Mesh(List<Vertex> vertices, Texture texture) {
         this(vertices, null, texture);
     }
-
     public Mesh(List<Vertex> vertices, Texture... textures) {
         this(vertices, null, textures != null ? Arrays.asList(textures) : null);
     }
-
     public Mesh(List<Vertex> vertices) {
         this(vertices, null, (Texture) null);
     }
-
     public Mesh(Vertex[] vertices, int[] indices, Texture texture) {
         if (vertices != null) {
             for (Vertex v : vertices) {
@@ -83,7 +75,6 @@ public class Mesh {
         }
         setTexture(texture);
     }
-
     public Mesh(Vertex[] vertices, int[] indices, List<Texture> textures) {
         if (vertices != null) {
             for (Vertex v : vertices) {
@@ -97,31 +88,24 @@ public class Mesh {
         }
         setTextures(textures);
     }
-
     public Mesh(Vertex[] vertices, int[] indices, Texture... textures) {
         this(vertices, indices, textures != null ? Arrays.asList(textures) : null);
     }
-
     public Mesh(Vertex[] vertices, int[] indices) {
         this(vertices, indices, (Texture) null);
     }
-
     public Mesh(Vertex[] vertices, Texture texture) {
         this(vertices, (int[]) null, texture);
     }
-
     public Mesh(Vertex[] vertices, List<Texture> textures) {
         this(vertices, (int[]) null, textures);
     }
-
     public Mesh(Vertex[] vertices, Texture... textures) {
         this(vertices, (int[]) null, textures != null ? Arrays.asList(textures) : null);
     }
-
     public Mesh(Vertex[] vertices) {
         this(vertices, (int[]) null, (Texture) null);
     }
-
     public Mesh(Mesh other) {
         if (other != null) {
             this.name = other.name;
@@ -143,7 +127,6 @@ public class Mesh {
     public Mesh add(Mesh other) {
         return add(other, null);
     }
-
     public Mesh add(Mesh other, Matrix4f transform) {
         if (other == null) return this;
 
@@ -218,11 +201,9 @@ public class Mesh {
 
         return this;
     }
-
     public Mesh add(Model model) {
         return add(model, null);
     }
-
     public Mesh add(Model model, Matrix4f transform) {
         if (model == null) return this;
         for (Mesh m : model.getMeshes()) {
@@ -236,7 +217,6 @@ public class Mesh {
         }
         return this;
     }
-
     public Mesh add(List<Vertex> verts, List<Integer> inds) {
         if (verts == null) return this;
         int baseOffset = this.vertices.size();
@@ -254,11 +234,9 @@ public class Mesh {
         }
         return this;
     }
-
     public Mesh add(List<Vertex> verts) {
         return add(verts, null);
     }
-
     public Mesh add(Vertex... verts) {
         return add(Arrays.asList(verts), null);
     }
@@ -269,12 +247,10 @@ public class Mesh {
         }
         return this;
     }
-
     public Mesh addIndex(int index) {
         this.indices.add(index);
         return this;
     }
-
     public Mesh addIndices(int... indices) {
         if (indices != null) {
             for (int idx : indices) {
@@ -283,7 +259,6 @@ public class Mesh {
         }
         return this;
     }
-
     public Mesh addTriangle(Vertex v0, Vertex v1, Vertex v2) {
         int baseOffset = this.vertices.size();
         this.vertices.add(new Vertex(v0));
@@ -294,7 +269,6 @@ public class Mesh {
         this.indices.add(baseOffset + 2);
         return this;
     }
-
     public Mesh addQuad(Vertex v0, Vertex v1, Vertex v2, Vertex v3) {
         int baseOffset = this.vertices.size();
         this.vertices.add(new Vertex(v0));
@@ -323,7 +297,6 @@ public class Mesh {
         }
         return combined;
     }
-
     public Mesh transform(Matrix4f matrix) {
         if (matrix == null) return this;
         for (Vertex v : vertices) {
@@ -344,7 +317,6 @@ public class Mesh {
         }
         return this;
     }
-
     public Mesh calculateNormals() {
         if (vertices.isEmpty()) return this;
 
@@ -411,7 +383,6 @@ public class Mesh {
 
         return this;
     }
-
     public Mesh translate(Vector3f offset) {
         if (offset == null) return this;
         return transform(new Matrix4f().translate(offset));
@@ -420,15 +391,12 @@ public class Mesh {
     public Mesh rotate(float angleRadians, float axisX, float axisY, float axisZ) {
         return transform(new Matrix4f().rotate(angleRadians, axisX, axisY, axisZ));
     }
-
     public Mesh rotateX(float angleRadians) {
         return transform(new Matrix4f().rotateX(angleRadians));
     }
-
     public Mesh rotateY(float angleRadians) {
         return transform(new Matrix4f().rotateY(angleRadians));
     }
-
     public Mesh rotateZ(float angleRadians) {
         return transform(new Matrix4f().rotateZ(angleRadians));
     }
@@ -436,7 +404,6 @@ public class Mesh {
     public Mesh scale(float sx, float sy, float sz) {
         return transform(new Matrix4f().scale(sx, sy, sz));
     }
-
     public Mesh scale(float s) {
         return scale(s, s, s);
     }
@@ -453,7 +420,6 @@ public class Mesh {
         }
         return new Vector3f(minX, minY, minZ);
     }
-
     public Vector3f getMaxBounds() {
         if (vertices.isEmpty()) return new Vector3f(0, 0, 0);
         float maxX = Float.NEGATIVE_INFINITY;
@@ -467,13 +433,17 @@ public class Mesh {
         return new Vector3f(maxX, maxY, maxZ);
     }
 
+    public Mesh center() {
+        if (vertices.isEmpty()) return this;
+        Vector3f c = getCenter();
+        return translate(new Vector3f(-c.x, -c.y, -c.z));
+    }
     public Vector3f getCenter() {
         if (vertices.isEmpty()) return new Vector3f(0, 0, 0);
         Vector3f min = getMinBounds();
         Vector3f max = getMaxBounds();
         return new Vector3f((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f, (min.z + max.z) * 0.5f);
     }
-
     public Vector3f getSize() {
         if (vertices.isEmpty()) return new Vector3f(0, 0, 0);
         Vector3f min = getMinBounds();
@@ -481,16 +451,9 @@ public class Mesh {
         return new Vector3f(max.x - min.x, max.y - min.y, max.z - min.z);
     }
 
-    public Mesh center() {
-        if (vertices.isEmpty()) return this;
-        Vector3f c = getCenter();
-        return translate(new Vector3f(-c.x, -c.y, -c.z));
-    }
-
     public Mesh normalize() {
         return fitToSize(1.0f);
     }
-
     public Mesh fitToSize(float targetSize) {
         if (vertices.isEmpty()) return this;
         center();
@@ -520,44 +483,45 @@ public class Mesh {
         mesh.setColor(c);
         return mesh;
     }
-
     public static Mesh createQuad(float x, float y, float width, float height, Color color) {
         return createQuad(x, y, width, height, color, null);
     }
-
     public static Mesh createQuad(float x, float y, float width, float height, Texture texture) {
         return createQuad(x, y, width, height, Color.White, texture);
     }
-
     public static Mesh createQuad(float width, float height, Color color, Texture texture) {
         return createQuad(0, 0, width, height, color, texture);
     }
-
     public static Mesh createQuad(float width, float height, Color color) {
         return createQuad(0, 0, width, height, color, null);
     }
-
     public static Mesh createQuad(float width, float height, Texture texture) {
         return createQuad(0, 0, width, height, Color.White, texture);
     }
-
-    public static Mesh createPlane(float width, float depth, Color color, Texture texture) {
+    public static Mesh createPlane(float width, float depth, Color color, Texture texture, boolean upsideDown) {
         Color c = color != null ? color : Color.White;
         float halfW = width * 0.5f;
         float halfD = depth * 0.5f;
 
-        Vertex v0 = new Vertex(-halfW, 0.0f, -halfD, 0.0f, 1.0f, 0.0f, c.r, c.g, c.b, c.a, 0.0f, 0.0f);
-        Vertex v1 = new Vertex(halfW, 0.0f, -halfD, 0.0f, 1.0f, 0.0f, c.r, c.g, c.b, c.a, 1.0f, 0.0f);
-        Vertex v2 = new Vertex(halfW, 0.0f, halfD, 0.0f, 1.0f, 0.0f, c.r, c.g, c.b, c.a, 1.0f, 1.0f);
-        Vertex v3 = new Vertex(-halfW, 0.0f, halfD, 0.0f, 1.0f, 0.0f, c.r, c.g, c.b, c.a, 0.0f, 1.0f);
+        float normalY = upsideDown ? -1.0f : 1.0f;
+
+        Vertex v0 = new Vertex(-halfW, 0.0f, -halfD, 0.0f, normalY, 0.0f, c.r, c.g, c.b, c.a, 0.0f, 0.0f);
+        Vertex v1 = new Vertex(halfW, 0.0f, -halfD, 0.0f, normalY, 0.0f, c.r, c.g, c.b, c.a, 1.0f, 0.0f);
+        Vertex v2 = new Vertex(halfW, 0.0f, halfD, 0.0f, normalY, 0.0f, c.r, c.g, c.b, c.a, 1.0f, 1.0f);
+        Vertex v3 = new Vertex(-halfW, 0.0f, halfD, 0.0f, normalY, 0.0f, c.r, c.g, c.b, c.a, 0.0f, 1.0f);
 
         Mesh mesh = new Mesh("Plane");
-        mesh.addQuad(v0, v1, v2, v3);
+
+        if (!upsideDown) {
+            mesh.addQuad(v3, v2, v1, v0);
+        } else {
+            mesh.addQuad(v0, v1, v2, v3);
+        }
+
         mesh.setTexture(texture);
         mesh.setColor(c);
         return mesh;
     }
-
     public static Mesh createCube(float size, Color color, Texture texture) {
         Color c = color != null ? color : Color.White;
         float h = size * 0.5f;
@@ -616,15 +580,12 @@ public class Mesh {
         mesh.setColor(c);
         return mesh;
     }
-
     public static Mesh createCube(float size, Texture texture) {
         return createCube(size, Color.White, texture);
     }
-
     public static Mesh createCube(float size, Color color) {
         return createCube(size, color, null);
     }
-
     public static Mesh createCube(float size) {
         return createCube(size, Color.White, null);
     }
@@ -673,23 +634,18 @@ public class Mesh {
         mesh.setColor(c);
         return mesh;
     }
-
     public static Mesh createSphere(float radius, int slices, int stacks, Color color) {
         return createSphere(radius, slices, stacks, color, null);
     }
-
     public static Mesh createSphere(float radius, int slices, int stacks) {
         return createSphere(radius, slices, stacks, Color.White, null);
     }
-
     public static Mesh createSphere(float radius, Color color) {
         return createSphere(radius, 16, 16, color, null);
     }
-
     public static Mesh createSphere(float radius) {
         return createSphere(radius, 16, 16, Color.White, null);
     }
-
     public static Mesh createSphere() {
         return createSphere(0.5f, 16, 16, Color.White, null);
     }
@@ -697,7 +653,6 @@ public class Mesh {
     public List<Vertex> getVertices() {
         return vertices;
     }
-
     public void setVertices(List<Vertex> newVertices) {
         this.vertices.clear();
         if (newVertices != null) {
@@ -706,11 +661,9 @@ public class Mesh {
             }
         }
     }
-
     public List<Integer> getIndices() {
         return indices;
     }
-
     public int[] getIndicesArray() {
         int[] arr = new int[indices.size()];
         for (int i = 0; i < indices.size(); i++) {
@@ -718,7 +671,6 @@ public class Mesh {
         }
         return arr;
     }
-
     public void setIndices(List<Integer> newIndices) {
         this.indices.clear();
         if (newIndices != null) {
@@ -731,18 +683,15 @@ public class Mesh {
         if (!textures.isEmpty()) return textures.get(0);
         return null;
     }
-
     public void setTexture(Texture texture) {
         this.texture = texture;
         if (texture != null && !textures.contains(texture)) {
             this.textures.add(texture);
         }
     }
-
     public List<Texture> getTextures() {
         return textures;
     }
-
     public void setTextures(List<Texture> textures) {
         this.textures.clear();
         if (textures != null) {
@@ -752,11 +701,9 @@ public class Mesh {
             }
         }
     }
-
     public void setTextures(Texture... textures) {
         setTextures(textures != null ? Arrays.asList(textures) : null);
     }
-
     public void addTexture(Texture texture) {
         if (texture != null) {
             if (!this.textures.contains(texture)) {
@@ -767,7 +714,6 @@ public class Mesh {
             }
         }
     }
-
     public void addTextures(Texture... textures) {
         if (textures != null) {
             for (Texture t : textures) {
@@ -775,7 +721,6 @@ public class Mesh {
             }
         }
     }
-
     public void addTextures(Collection<Texture> textures) {
         if (textures != null) {
             for (Texture t : textures) {
@@ -783,22 +728,18 @@ public class Mesh {
             }
         }
     }
-
     public Texture getTexture(int index) {
         if (index >= 0 && index < textures.size()) {
             return textures.get(index);
         }
         return getTexture();
     }
-
     public boolean hasTextures() {
         return texture != null || !textures.isEmpty();
     }
-
     public Color getColor() {
         return color;
     }
-
     public void setColor(Color color) {
         this.color = color != null ? new Color(color) : new Color(1.0f, 1.0f, 1.0f, 1.0f);
         for (Vertex v : vertices) {
@@ -808,27 +749,21 @@ public class Mesh {
             v.a = this.color.a;
         }
     }
-
     public String getName() {
         return name;
     }
-
     public void setName(String name) {
         this.name = name;
     }
-
     public int getVertexCount() {
         return vertices.size();
     }
-
     public int getIndexCount() {
         return indices.size();
     }
-
     public int getTriangleCount() {
         return !indices.isEmpty() ? indices.size() / 3 : vertices.size() / 3;
     }
-
     public List<Vertex> getUnindexedVertices() {
         if (indices.isEmpty()) {
             return new ArrayList<>(vertices);

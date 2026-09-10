@@ -1,1 +1,237 @@
-[{"components":[{"position":{"x":-12.159767,"y":24.913483,"z":18.018719},"rotation":{"x":-32.49914,"y":-54.08813,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.TransformComponent"},{"isCurrent":true,"handleMovement":true,"cameraPosition":{"x":-12.159767,"y":24.913483,"z":18.018719},"cameraYaw":-54.08813,"cameraPitch":-32.49914,"cameraFov":60.0,"cameraNear":0.1,"cameraFar":10000.0,"cameraAspectRatio":1.7777778,"rightClickToLook":true,"movementSpeed":80.0,"cameraSensitivity":0.1,"lastPitch":-32.49914,"lastYaw":-54.08813,"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.CameraComponent"}],"transform":{"position":{"x":-12.159767,"y":24.913483,"z":18.018719},"rotation":{"x":-32.49914,"y":-54.08813,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true},"name":"Camera","started":true,"active":true},{"components":[{"position":{"x":18.0,"y":20.0,"z":15.0},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.TransformComponent"},{"isCurrent":true,"drawDebugBall":true,"lightType":"POINT","lightPosition":{"x":18.0,"y":20.0,"z":15.0},"lightDirection":{"x":1.0,"y":0.0,"z":-0.0},"lightColor":{"r":1.0,"g":0.3872549,"b":0.49392706,"a":1.0},"lightIntensity":1.2,"ambientColor":{"r":0.25,"g":0.25,"b":0.28,"a":1.0},"ambientIntensity":0.35,"specularIntensity":0.5,"shininess":32.0,"cutOff":0.91,"outerCutOff":0.82,"debugBallRadius":0.5,"lastDebugBallRadius":0.5,"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.LightComponent"}],"transform":{"position":{"x":18.0,"y":20.0,"z":15.0},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true},"name":"Red_Light","started":true,"active":true},{"components":[{"position":{"x":0.0,"y":0.0,"z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.TransformComponent"},{"model":{"filepath":"src/main/resources/Models/bunny.obj","name":"bunny","position":{"x":0.0,"y":0.0,"z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"scale":{"x":100.0,"y":100.0,"z":100.0},"transform":{"properties":30,"m00":1.0,"m01":0.0,"m02":0.0,"m03":0.0,"m10":0.0,"m11":1.0,"m12":0.0,"m13":0.0,"m20":0.0,"m21":0.0,"m22":1.0,"m23":0.0,"m30":0.0,"m31":0.0,"m32":0.0,"m33":1.0}},"modelPath":"src/main/resources/Models/bunny.obj","visible":true,"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.MeshRendererComponent"}],"transform":{"position":{"x":0.0,"y":0.0,"z":0.0},"rotation":{"x":0.0,"y":0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true},"name":"Bunny","started":true,"active":true},{"components":[{"position":{"x":-17.0,"y":20.0,"z":6.0},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.TransformComponent"},{"isCurrent":true,"drawDebugBall":true,"lightType":"POINT","lightPosition":{"x":-17.0,"y":20.0,"z":6.0},"lightDirection":{"x":1.0,"y":0.0,"z":-0.0},"lightColor":{"r":0.43238184,"g":1.0,"b":0.377451,"a":1.0},"lightIntensity":0.3,"ambientColor":{"r":0.25,"g":0.25,"b":0.28,"a":1.0},"ambientIntensity":0.35,"specularIntensity":0.5,"shininess":32.0,"cutOff":0.91,"outerCutOff":0.82,"debugBallRadius":0.5,"lastDebugBallRadius":0.5,"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.LightComponent"}],"transform":{"position":{"x":-17.0,"y":20.0,"z":6.0},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true},"name":"Green_Light","started":true,"active":true},{"components":[{"position":{"x":-5.0,"y":17.0,"z":-15.0},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.TransformComponent"},{"isCurrent":true,"drawDebugBall":true,"lightType":"POINT","lightPosition":{"x":-5.0,"y":17.0,"z":-15.0},"lightDirection":{"x":1.0,"y":0.0,"z":-0.0},"lightColor":{"r":0.0,"g":0.2413495,"b":0.45588237,"a":1.0},"lightIntensity":1.0,"ambientColor":{"r":0.25,"g":0.25,"b":0.28,"a":1.0},"ambientIntensity":0.35,"specularIntensity":0.5,"shininess":32.0,"cutOff":0.91,"outerCutOff":0.82,"debugBallRadius":0.5,"lastDebugBallRadius":0.5,"isEnabled":true,"type":"net.meowsers.Peach.ECS.Components.LightComponent"}],"transform":{"position":{"x":-5.0,"y":17.0,"z":-15.0},"rotation":{"x":0.0,"y":-0.0,"z":0.0},"scale":{"x":1.0,"y":1.0,"z":1.0},"isEnabled":true},"name":"Blue_Light","started":true,"active":true}]
+[
+  {
+    "components": [
+      {
+        "position": {
+          "x": -21.700499,
+          "y": 17.467468,
+          "z": 31.671444
+        },
+        "rotation": {
+          "x": -8.334343,
+          "y": -55.513287,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "isEnabled": true,
+        "type": "net.meowsers.Peach.ECS.Components.TransformComponent"
+      },
+      {
+        "isCurrent": true,
+        "handleMovement": true,
+        "cameraPosition": {
+          "x": -21.700499,
+          "y": 17.467468,
+          "z": 31.671444
+        },
+        "cameraYaw": -55.513287,
+        "cameraPitch": -8.334343,
+        "cameraFov": 60.0,
+        "cameraNear": 0.1,
+        "cameraFar": 10000.0,
+        "cameraAspectRatio": 1.7777778,
+        "rightClickToLook": true,
+        "movementSpeed": 80.0,
+        "cameraSensitivity": 0.1,
+        "lastPitch": -8.334343,
+        "lastYaw": -55.513287,
+        "isEnabled": true,
+        "type": "net.meowsers.Peach.ECS.Components.CameraComponent"
+      }
+    ],
+    "transform": {
+      "position": {
+        "x": -21.700499,
+        "y": 17.467468,
+        "z": 31.671444
+      },
+      "rotation": {
+        "x": -8.334343,
+        "y": -55.513287,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "isEnabled": true
+    },
+    "name": "camera",
+    "started": true,
+    "active": true
+  },
+  {
+    "components": [
+      {
+        "position": {
+          "x": 10.0,
+          "y": 20.0,
+          "z": 15.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "isEnabled": true,
+        "type": "net.meowsers.Peach.ECS.Components.TransformComponent"
+      },
+      {
+        "isCurrent": true,
+        "drawDebugBall": true,
+        "lightType": "POINT",
+        "lightPosition": {
+          "x": 10.0,
+          "y": 20.0,
+          "z": 15.0
+        },
+        "lightDirection": {
+          "x": 0.0,
+          "y": -1.0,
+          "z": 0.0
+        },
+        "lightColor": {
+          "r": 1.0,
+          "g": 0.753,
+          "b": 0.796,
+          "a": 1.0
+        },
+        "lightIntensity": 1.0,
+        "ambientColor": {
+          "r": 0.25,
+          "g": 0.25,
+          "b": 0.28,
+          "a": 1.0
+        },
+        "ambientIntensity": 0.35,
+        "specularIntensity": 0.5,
+        "shininess": 32.0,
+        "cutOff": 0.91,
+        "outerCutOff": 0.82,
+        "debugBallRadius": 0.5,
+        "lastDebugBallRadius": 0.5,
+        "isEnabled": true,
+        "type": "net.meowsers.Peach.ECS.Components.LightComponent"
+      }
+    ],
+    "transform": {
+      "position": {
+        "x": 10.0,
+        "y": 20.0,
+        "z": 15.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "isEnabled": true
+    },
+    "name": "light",
+    "started": true,
+    "active": true
+  },
+  {
+    "components": [
+      {
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "isEnabled": true,
+        "type": "net.meowsers.Peach.ECS.Components.TransformComponent"
+      },
+      {
+        "model": {
+          "filepath": "src/main/resources/Models/bunny.obj",
+          "name": "bunny",
+          "position": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "rotation": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "scale": {
+            "x": 100.0,
+            "y": 100.0,
+            "z": 100.0
+          },
+          "transform": {
+            "properties": 30,
+            "m00": 1.0,
+            "m01": 0.0,
+            "m02": 0.0,
+            "m03": 0.0,
+            "m10": 0.0,
+            "m11": 1.0,
+            "m12": 0.0,
+            "m13": 0.0,
+            "m20": 0.0,
+            "m21": 0.0,
+            "m22": 1.0,
+            "m23": 0.0,
+            "m30": 0.0,
+            "m31": 0.0,
+            "m32": 0.0,
+            "m33": 1.0
+          }
+        },
+        "modelPath": "src/main/resources/Models/bunny.obj",
+        "visible": true,
+        "isEnabled": true,
+        "type": "net.meowsers.Peach.ECS.Components.MeshRendererComponent"
+      }
+    ],
+    "transform": {
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "rotation": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "scale": {
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "isEnabled": true
+    },
+    "name": "bunny",
+    "started": true,
+    "active": true
+  }
+]

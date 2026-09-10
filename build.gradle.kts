@@ -9,7 +9,7 @@ val lwjglVersion = "3.4.3"
 val jomlVersion = "1.10.9"
 val imguiVersion = "1.92.7.1"
 
-// Automatically detect host OS and architecture for LWJGL natives
+// Detect os for lwjgl
 val lwjglNatives = Pair(
     System.getProperty("os.name")!!,
     System.getProperty("os.arch")!!
@@ -26,7 +26,6 @@ val lwjglNatives = Pair(
     }
 }
 
-// All major native platforms to ensure multiplatform portability
 val nativePlatforms = listOf(
     "natives-windows",
     "natives-windows-arm64",
@@ -64,7 +63,7 @@ dependencies {
     implementation("org.lwjgl:lwjgl-opengl::$lwjglNatives")
     implementation("org.lwjgl:lwjgl-stb::$lwjglNatives")
 
-    // Multi-platform runtime natives for portability across all machines
+    // Multiplatform runtimes for portability's sake
     for (platform in nativePlatforms) {
         runtimeOnly("org.lwjgl:lwjgl::$platform")
         runtimeOnly("org.lwjgl:lwjgl-assimp::$platform")
@@ -88,12 +87,22 @@ dependencies {
     implementation("com.google.code.gson:gson:2.14.0")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
-    jvmArgs("-XstartOnFirstThread", "--enable-native-access=ALL-UNNAMED", "--sun-misc-unsafe-memory-access=allow")
+// Java compilation optimization & parallel process forking
+tasks.withType<JavaCompile>().configureEach {
+    options.encoding = "UTF-8"
+    options.isIncremental = true
+    options.isFork = true
+    options.forkOptions.jvmArgs = listOf("-Xms512m", "-Xmx2048m")
 }
 
-tasks.withType<JavaExec> {
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+    jvmArgs("-XstartOnFirstThread", "--enable-native-access=ALL-UNNAMED", "--sun-misc-unsafe-memory-access=allow")
+
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+}
+
+tasks.withType<JavaExec>().configureEach {
     jvmArgs("-XstartOnFirstThread", "--enable-native-access=ALL-UNNAMED", "--sun-misc-unsafe-memory-access=allow")
 }
 

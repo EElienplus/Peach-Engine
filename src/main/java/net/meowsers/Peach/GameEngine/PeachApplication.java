@@ -1,5 +1,8 @@
 package net.meowsers.Peach.GameEngine;
 
+import net.meowsers.Peach.Audio.AudioManager;
+import net.meowsers.Peach.Audio.PeachAudio;
+import net.meowsers.Peach.Audio.PeachAudioPlayer;
 import net.meowsers.Peach.GUI.PeachGui;
 import net.meowsers.Peach.Graphics.Renderer;
 import net.meowsers.Peach.Graphics.Window;
@@ -57,6 +60,7 @@ public abstract class PeachApplication {
         Time.start();
         Input.start(window.getHandle());
         PeachGui.init(window.getHandle());
+        PeachAudioPlayer.init();
 
         levels = new ArrayList<>();
 
@@ -75,6 +79,8 @@ public abstract class PeachApplication {
             if(levels != null && !levels.isEmpty()) {
                 updateLevels(dt);
             }
+
+            AudioManager.update();
 
             update(dt);
 

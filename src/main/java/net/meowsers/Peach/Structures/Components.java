@@ -9,6 +9,7 @@ public enum Components {
     Camera(CameraComponent.class.getSimpleName(), CameraComponent.class),
     Light(LightComponent.class.getSimpleName(), LightComponent.class),
     CubeCollider(CubeColliderComponent.class.getSimpleName(), CubeColliderComponent.class),
+    AudioPlayer(AudioPlayerComponent.class.getSimpleName(), AudioPlayerComponent.class),
     Transform(TransformComponent.class.getSimpleName(), TransformComponent.class);
 
     private final String componentName;

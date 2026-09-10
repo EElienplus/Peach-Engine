@@ -20,6 +20,7 @@ public class MeshRendererComponent extends BehaviorComponent {
     @Editor private String modelPath;
     private boolean visible = true;
     private transient String lastLoadedModelPath;
+    @Editor(argument = "Read-Only") private int vertCount;
 
     private transient Vector3f savedScale = new Vector3f(1.0f, 1.0f, 1.0f);
     private transient Vector3f savedPosition = new Vector3f(0.0f, 0.0f, 0.0f);
@@ -108,6 +109,10 @@ public class MeshRendererComponent extends BehaviorComponent {
         if (m.getTransform() != null) savedTransform.set(m.getTransform());
         if (m.getTextures() != null && !m.getTextures().isEmpty()) {
             savedTextures = new ArrayList<>(m.getTextures());
+        }
+        if(m.getMesh(0) != null) {
+            vertCount = m.getMesh(0).getVertexCount();
+
         }
     }
 

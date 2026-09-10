@@ -36,6 +36,7 @@ import org.joml.Vector4f;
 import org.joml.Vector4i;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -392,115 +393,82 @@ public class PeachGui {
 
         ImGui.pushID(label);
 
-        text(label + ":");
-        sameLine();
-
-        ImGui.setNextItemWidth(180.0f);
-
         Editor editorAnnot = field.getAnnotation(Editor.class);
         boolean requirePositive = editorAnnot != null && "Positive".equalsIgnoreCase(editorAnnot.argument());
+        boolean readOnly = editorAnnot != null && "Read-Only".equalsIgnoreCase(editorAnnot.argument());
+        boolean isBooleanButton = editorAnnot != null && "Boolean-Button".equalsIgnoreCase(editorAnnot.argument());
+        boolean isVolume = editorAnnot != null && "Volume".equalsIgnoreCase(editorAnnot.argument()) || label.equalsIgnoreCase("volume");
 
-        if (type == float.class) {
-            floatBuffer[0] = field.getFloat(instance);
+        // 1. Boolean-Button Special Case (Renders as a standalone action button)
+        if (isBooleanButton && (type == boolean.class || type == Boolean.class)) {
+            boolean val = type == boolean.class ? field.getBoolean(instance) : Boolean.TRUE.equals(field.get(instance));
+            if (ImGui.button(label + "##val")) {
+                val = !val;
+                if (type == boolean.class) field.setBoolean(instance, val);
+                else field.set(instance, val);
+                invokeCallback(editorAnnot, instance);
+            }
+            ImGui.popID();
+            return;
+        }
 
-            float vMin = requirePositive ? 0.0f : -Float.MAX_VALUE;
+        // Standard Inspector Row Layout Prefix
+        text(label + ":");
+        sameLine();
+        ImGui.setNextItemWidth(180.0f);
 
-            if (ImGui.dragFloat("##val", floatBuffer, 0.1f, vMin, Float.MAX_VALUE)) {
-                if (requirePositive && floatBuffer[0] < 0.0f) {
-                    floatBuffer[0] = 0.0f;
+        if (type == float.class || type == Float.class) {
+            Object obj = field.get(instance);
+            floatBuffer[0] = obj != null ? ((Number) obj).floatValue() : 0.0f;
+
+            if (readOnly) {
+                text(Float.toString(floatBuffer[0]));
+            } else if (isVolume) {
+                if (ImGui.sliderFloat("##val", floatBuffer, 0.0f, 1.0f)) {
+                    setFieldFloat(field, instance, type, floatBuffer[0]);
+                    invokeCallback(editorAnnot, instance);
                 }
-                field.setFloat(instance, floatBuffer[0]);
-            }
-        }
-        else if (type == Float.class) {
-            Object obj = field.get(instance);
-            floatBuffer[0] = obj != null ? (Float) obj : 0.0f;
-
-            float vMin = requirePositive ? 0.0f : -Float.MAX_VALUE;
-
-            if (ImGui.dragFloat("##val", floatBuffer, 0.1f, vMin, Float.MAX_VALUE)) {
-                if (requirePositive && floatBuffer[0] < 0.0f) {
-                    floatBuffer[0] = 0.0f;
+            } else {
+                float vMin = requirePositive ? 0.0f : -Float.MAX_VALUE;
+                if (ImGui.dragFloat("##val", floatBuffer, 0.1f, vMin, Float.MAX_VALUE)) {
+                    if (requirePositive && floatBuffer[0] < 0.0f) floatBuffer[0] = 0.0f;
+                    setFieldFloat(field, instance, type, floatBuffer[0]);
+                    invokeCallback(editorAnnot, instance);
                 }
-                field.set(instance, floatBuffer[0]);
             }
         }
-        else if (type == double.class) {
-            floatBuffer[0] = (float) field.getDouble(instance);
-            if (ImGui.dragFloat("##val", floatBuffer, 0.1f)) {
-                field.setDouble(instance, (double) floatBuffer[0]);
-            }
-        }
-        else if (type == Double.class) {
+        else if (type == double.class || type == Double.class) {
             Object obj = field.get(instance);
-            floatBuffer[0] = obj != null ? ((Double) obj).floatValue() : 0.0f;
-            if (ImGui.dragFloat("##val", floatBuffer, 0.1f)) {
-                field.set(instance, (double) floatBuffer[0]);
+            floatBuffer[0] = obj != null ? ((Number) obj).floatValue() : 0.0f;
+
+            if (readOnly) {
+                text(Double.toString(obj != null ? (Double) obj : 0.0));
+            } else if (ImGui.dragFloat("##val", floatBuffer, 0.1f)) {
+                setFieldDouble(field, instance, type, (double) floatBuffer[0]);
+                invokeCallback(editorAnnot, instance);
             }
         }
-        else if (type == int.class) {
-            intBuffer[0] = field.getInt(instance);
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.setInt(instance, intBuffer[0]);
-            }
-        }
-        else if (type == Integer.class) {
+        else if (type == int.class || type == Integer.class ||
+                type == long.class || type == Long.class ||
+                type == short.class || type == Short.class ||
+                type == byte.class || type == Byte.class) {
             Object obj = field.get(instance);
-            intBuffer[0] = obj != null ? (Integer) obj : 0;
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.set(instance, intBuffer[0]);
+            intBuffer[0] = obj != null ? ((Number) obj).intValue() : 0;
+
+            if (readOnly) {
+                text(Integer.toString(intBuffer[0]));
+            } else if (ImGui.dragInt("##val", intBuffer)) {
+                setFieldWholeNumber(field, instance, type, intBuffer[0]);
+                invokeCallback(editorAnnot, instance);
             }
         }
-        else if (type == long.class) {
-            intBuffer[0] = (int) field.getLong(instance);
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.setLong(instance, (long) intBuffer[0]);
-            }
-        }
-        else if (type == Long.class) {
-            Object obj = field.get(instance);
-            intBuffer[0] = obj != null ? ((Long) obj).intValue() : 0;
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.set(instance, (long) intBuffer[0]);
-            }
-        }
-        else if (type == short.class) {
-            intBuffer[0] = field.getShort(instance);
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.setShort(instance, (short) intBuffer[0]);
-            }
-        }
-        else if (type == Short.class) {
-            Object obj = field.get(instance);
-            intBuffer[0] = obj != null ? (Short) obj : 0;
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.set(instance, (short) intBuffer[0]);
-            }
-        }
-        else if (type == byte.class) {
-            intBuffer[0] = field.getByte(instance);
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.setByte(instance, (byte) intBuffer[0]);
-            }
-        }
-        else if (type == Byte.class) {
-            Object obj = field.get(instance);
-            intBuffer[0] = obj != null ? (Byte) obj : 0;
-            if (ImGui.dragInt("##val", intBuffer)) {
-                field.set(instance, (byte) intBuffer[0]);
-            }
-        }
-        else if (type == boolean.class) {
-            boolean val = field.getBoolean(instance);
+        else if (type == boolean.class || type == Boolean.class) {
+            boolean val = type == boolean.class ? field.getBoolean(instance) : Boolean.TRUE.equals(field.get(instance));
             if (ImGui.checkbox("##val", val)) {
-                field.setBoolean(instance, !val);
-            }
-        }
-        else if (type == Boolean.class) {
-            Object obj = field.get(instance);
-            boolean val = obj != null && (Boolean) obj;
-            if (ImGui.checkbox("##val", val)) {
-                field.set(instance, !val);
+                val = !val;
+                if (type == boolean.class) field.setBoolean(instance, val);
+                else field.set(instance, val);
+                invokeCallback(editorAnnot, instance);
             }
         }
         else if (type == String.class) {
@@ -508,6 +476,7 @@ public class PeachGui {
             ImString fieldBuf = new ImString(strVal != null ? (String) strVal : "", 512);
             if (ImGui.inputText("##val", fieldBuf)) {
                 field.set(instance, fieldBuf.get());
+                invokeCallback(editorAnnot, instance);
             }
         }
         else if (type == Color.class) {
@@ -521,96 +490,74 @@ public class PeachGui {
             floatBuffer[2] = color.b;
             floatBuffer[3] = color.a;
             if (ImGui.colorEdit4("##val", floatBuffer)) {
-                color.r = floatBuffer[0];
-                color.g = floatBuffer[1];
-                color.b = floatBuffer[2];
-                color.a = floatBuffer[3];
                 field.set(instance, new Color(floatBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]));
+                invokeCallback(editorAnnot, instance);
             }
         }
-        else if (type == Vector2f.class) {
-            Vector2f vec = (Vector2f) field.get(instance);
-            if (vec == null) {
-                vec = new Vector2f();
-                field.set(instance, vec);
-            }
-            floatBuffer[0] = vec.x;
-            floatBuffer[1] = vec.y;
-            if (ImGui.dragFloat2("##val", floatBuffer, 0.1f)) {
-                vec.set(floatBuffer[0], floatBuffer[1]);
-            }
-        }
-        else if (type == Vector3f.class) {
-            Vector3f vec = (Vector3f) field.get(instance);
-            if (vec == null) {
-                vec = new Vector3f();
-                field.set(instance, vec);
-            }
-            floatBuffer[0] = vec.x;
-            floatBuffer[1] = vec.y;
-            floatBuffer[2] = vec.z;
-            if (ImGui.dragFloat3("##val", floatBuffer, 0.1f)) {
-                if (field.getName().equalsIgnoreCase("scale")) {
-                    floatBuffer[0] = Math.max(MIN_SCALE, floatBuffer[0]);
-                    floatBuffer[1] = Math.max(MIN_SCALE, floatBuffer[1]);
-                    floatBuffer[2] = Math.max(MIN_SCALE, floatBuffer[2]);
+        else if (type == Vector2f.class || type == Vector3f.class || type == Vector4f.class) {
+            Vector2f vec2 = type == Vector2f.class ? (Vector2f) field.get(instance) : null;
+            Vector3f vec3 = type == Vector3f.class ? (Vector3f) field.get(instance) : null;
+            Vector4f vec4 = type == Vector4f.class ? (Vector4f) field.get(instance) : null;
+
+            if (vec2 == null && type == Vector2f.class) { vec2 = new Vector2f(); field.set(instance, vec2); }
+            if (vec3 == null && type == Vector3f.class) { vec3 = new Vector3f(); field.set(instance, vec3); }
+            if (vec4 == null && type == Vector4f.class) { vec4 = new Vector4f(); field.set(instance, vec4); }
+
+            if (vec2 != null) {
+                floatBuffer[0] = vec2.x; floatBuffer[1] = vec2.y;
+                if (ImGui.dragFloat2("##val", floatBuffer, 0.1f)) {
+                    vec2.set(floatBuffer[0], floatBuffer[1]);
+                    invokeCallback(editorAnnot, instance);
                 }
-                vec.set(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+            } else if (vec3 != null) {
+                floatBuffer[0] = vec3.x; floatBuffer[1] = vec3.y; floatBuffer[2] = vec3.z;
+                if (ImGui.dragFloat3("##val", floatBuffer, 0.1f)) {
+                    if (label.equalsIgnoreCase("scale")) {
+                        floatBuffer[0] = Math.max(MIN_SCALE, floatBuffer[0]);
+                        floatBuffer[1] = Math.max(MIN_SCALE, floatBuffer[1]);
+                        floatBuffer[2] = Math.max(MIN_SCALE, floatBuffer[2]);
+                    }
+                    vec3.set(floatBuffer[0], floatBuffer[1], floatBuffer[2]);
+                    invokeCallback(editorAnnot, instance);
+                }
+            } else if (vec4 != null) {
+                floatBuffer[0] = vec4.x; floatBuffer[1] = vec4.y; floatBuffer[2] = vec4.z; floatBuffer[3] = vec4.w;
+                if (ImGui.dragFloat4("##val", floatBuffer, 0.1f)) {
+                    vec4.set(floatBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]);
+                    invokeCallback(editorAnnot, instance);
+                }
             }
         }
-        else if (type == Vector4f.class) {
-            Vector4f vec = (Vector4f) field.get(instance);
-            if (vec == null) {
-                vec = new Vector4f();
-                field.set(instance, vec);
-            }
-            floatBuffer[0] = vec.x;
-            floatBuffer[1] = vec.y;
-            floatBuffer[2] = vec.z;
-            floatBuffer[3] = vec.w;
-            if (ImGui.dragFloat4("##val", floatBuffer, 0.1f)) {
-                vec.set(floatBuffer[0], floatBuffer[1], floatBuffer[2], floatBuffer[3]);
-            }
-        }
-        else if (type == Vector2i.class) {
-            Vector2i vec = (Vector2i) field.get(instance);
-            if (vec == null) {
-                vec = new Vector2i();
-                field.set(instance, vec);
-            }
-            intBuffer[0] = vec.x;
-            intBuffer[1] = vec.y;
-            if (ImGui.dragInt2("##val", intBuffer)) {
-                vec.set(intBuffer[0], intBuffer[1]);
-            }
-        }
-        else if (type == Vector3i.class) {
-            Vector3i vec = (Vector3i) field.get(instance);
-            if (vec == null) {
-                vec = new Vector3i();
-                field.set(instance, vec);
-            }
-            intBuffer[0] = vec.x;
-            intBuffer[1] = vec.y;
-            intBuffer[2] = vec.z;
-            if (ImGui.dragInt3("##val", intBuffer)) {
-                vec.set(intBuffer[0], intBuffer[1], intBuffer[2]);
+        else if (type == Vector2i.class || type == Vector3i.class || type == Vector4i.class) {
+            Vector2i vec2i = type == Vector2i.class ? (Vector2i) field.get(instance) : null;
+            Vector3i vec3i = type == Vector3i.class ? (Vector3i) field.get(instance) : null;
+            Vector4i vec4i = type == Vector4i.class ? (Vector4i) field.get(instance) : null;
+
+            if (vec2i == null && type == Vector2i.class) { vec2i = new Vector2i(); field.set(instance, vec2i); }
+            if (vec3i == null && type == Vector3i.class) { vec3i = new Vector3i(); field.set(instance, vec3i); }
+            if (vec4i == null && type == Vector4i.class) { vec4i = new Vector4i(); field.set(instance, vec4i); }
+
+            if (vec2i != null) {
+                intBuffer[0] = vec2i.x; intBuffer[1] = vec2i.y;
+                if (ImGui.dragInt2("##val", intBuffer)) {
+                    vec2i.set(intBuffer[0], intBuffer[1]);
+                    invokeCallback(editorAnnot, instance);
+                }
+            } else if (vec3i != null) {
+                intBuffer[0] = vec3i.x; intBuffer[1] = vec3i.y; intBuffer[2] = vec3i.z;
+                if (ImGui.dragInt3("##val", intBuffer)) {
+                    vec3i.set(intBuffer[0], intBuffer[1], intBuffer[2]);
+                    invokeCallback(editorAnnot, instance);
+                }
+            } else if (vec4i != null) {
+                intBuffer[0] = vec4i.x; intBuffer[1] = vec4i.y; intBuffer[2] = vec4i.z; intBuffer[3] = vec4i.w;
+                if (ImGui.dragInt4("##val", intBuffer)) {
+                    vec4i.set(intBuffer[0]);
+                    invokeCallback(editorAnnot, instance);
+                }
             }
         }
-        else if (type == Vector4i.class) {
-            Vector4i vec = (Vector4i) field.get(instance);
-            if (vec == null) {
-                vec = new Vector4i();
-                field.set(instance, vec);
-            }
-            intBuffer[0] = vec.x;
-            intBuffer[1] = vec.y;
-            intBuffer[2] = vec.z;
-            intBuffer[3] = vec.w;
-            if (ImGui.dragInt4("##val", intBuffer)) {
-                vec.set(intBuffer[0], intBuffer[1], intBuffer[2], intBuffer[3]);
-            }
-        }
+        // 10. Enums
         else if (type.isEnum() || Enum.class.isAssignableFrom(type)) {
             @SuppressWarnings("unchecked")
             Class<? extends Enum<?>> enumClass = (Class<? extends Enum<?>>) (type.isEnum() ? type : type.getSuperclass());
@@ -618,14 +565,14 @@ public class PeachGui {
             if (cache.constants.length > 0) {
                 Object currentVal = field.get(instance);
                 int currentIndex = currentVal != null ? ((Enum<?>) currentVal).ordinal() : 0;
-                if (currentIndex < 0 || currentIndex >= cache.constants.length) {
-                    currentIndex = 0;
-                }
+                if (currentIndex < 0 || currentIndex >= cache.constants.length) currentIndex = 0;
+
                 imIntBuffer.set(currentIndex);
                 if (ImGui.combo("##val", imIntBuffer, cache.names)) {
                     int selected = imIntBuffer.get();
                     if (selected >= 0 && selected < cache.constants.length) {
                         field.set(instance, cache.constants[selected]);
+                        invokeCallback(editorAnnot, instance);
                     }
                 }
             }
@@ -633,6 +580,36 @@ public class PeachGui {
 
         ImGui.popID();
     }
+
+    private static void setFieldFloat(Field field, Object instance, Class<?> type, float val) throws IllegalAccessException {
+        if (type == float.class) field.setFloat(instance, val);
+        else field.set(instance, val);
+    }
+    private static void setFieldDouble(Field field, Object instance, Class<?> type, double val) throws IllegalAccessException {
+        if (type == double.class) field.setDouble(instance, val);
+        else field.set(instance, val);
+    }
+    private static void setFieldWholeNumber(Field field, Object instance, Class<?> type, int val) throws IllegalAccessException {
+        if (type == int.class) field.setInt(instance, val);
+        else if (type == long.class) field.setLong(instance, val);
+        else if (type == short.class) field.setShort(instance, (short) val);
+        else if (type == byte.class) field.setByte(instance, (byte) val);
+        else field.set(instance, val);
+    }
+    private static void invokeCallback(Editor editorAnnot, Object instance) {
+        if (editorAnnot == null) return;
+        String callbackName = editorAnnot.callbackMethodName();
+        if (callbackName != null && !callbackName.isEmpty()) {
+            try {
+                Method method = instance.getClass().getDeclaredMethod(callbackName);
+                method.setAccessible(true);
+                method.invoke(instance);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public static GameObject getSelectedGameObject() {
         return selectedGameObject;
     }
@@ -980,5 +957,16 @@ public class PeachGui {
         gizmoToolbar();
         showStats();
         gizmo(selectedGameObject, camera);
+        saveTest(level);
+    }
+
+    public static void saveTest(PeachLevel level) {
+        PeachGui.window("Save Test", () -> {
+            if(PeachGui.button("Save")) {
+                level.save("saves/level1.json");
+            } else if(PeachGui.button("Load")) {
+                level.load("saves/level1.json");
+            }
+        });
     }
 }
