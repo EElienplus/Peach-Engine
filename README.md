@@ -26,6 +26,10 @@ want to recompile the shaders. You will need the slang compiler. I have convenie
 set up everything automatically for you. Just run `setup/setupSlang` and it will download and configure everything as 
 to how it's needed :)
 
+#### Screenshot of the level as of writing:
+
+![img.png](projectScreenshot.png)
+
 ### PS: 
 I don't like doing readmes. It's so dumb, but at least I've got something, am I right.
 So do with this project as you will
