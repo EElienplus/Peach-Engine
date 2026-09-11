@@ -1,24 +1,18 @@
 package net.meowsers;
 
-import net.meowsers.Peach.Audio.AudioManager;
-import net.meowsers.Peach.Audio.PeachAudio;
-import net.meowsers.Peach.Audio.PeachAudioPlayer;
+import net.meowsers.Peach.GameEngine.Assets;
 import net.meowsers.Peach.ECS.Components.*;
 import net.meowsers.Peach.ECS.GameObject;
 import net.meowsers.Peach.GUI.PeachGui;
 import net.meowsers.Peach.GameEngine.PeachLevel;
-import net.meowsers.Peach.Graphics.Camera;
 import net.meowsers.Peach.Graphics.Mesh;
 import net.meowsers.Peach.Graphics.Model;
 import net.meowsers.Peach.Graphics.Texture;
-import net.meowsers.Peach.Serialization.PeachSerializer;
 import net.meowsers.Peach.Structures.Color;
 import net.meowsers.Peach.Structures.Key;
 import net.meowsers.Peach.Structures.WindowParams;
 import net.meowsers.Peach.Utils.Input;
-import net.meowsers.Peach.Utils.Log;
 import org.joml.Vector3f;
-
 
 import java.util.List;
 
@@ -40,7 +34,7 @@ public class MyLevel extends PeachLevel {
     public void start() {
         WindowParams.maximized = true;
 
-        tex = new Texture("/Users/meowsers/Documents/Grrr.png");
+        tex = Assets.get("/Users/meowsers/Documents/Grrr.png", Texture::new);
 
         camera.addComponent(new CameraComponent());
         camera.getComponent(CameraComponent.class).setCurrent();
@@ -51,7 +45,7 @@ public class MyLevel extends PeachLevel {
         light.getComponent(LightComponent.class).setColor(Color.Pink);
 
         bunny.addComponent(new MeshRendererComponent());
-        bunny.getComponent(MeshRendererComponent.class).setModel(new Model("src/main/resources/Models/bunny.obj"));
+        bunny.getComponent(MeshRendererComponent.class).setModel((Model) Assets.get("src/main/resources/Models/bunny.obj", Model::new));
         bunny.getComponent(MeshRendererComponent.class).model.setScale(100);
         bunny.addComponent(new AudioPlayerComponent("src/main/resources/Audio/yoshi.ogg"));
 
@@ -64,6 +58,14 @@ public class MyLevel extends PeachLevel {
         super.update(dt);
         PeachGui.debugEditor(this);
 
-        if(Input.isKeyPressed(Key.SPACE)) bunny.getComponent(AudioPlayerComponent.class).play();
+        if (Input.isKeyPressed(Key.SPACE)) {
+            bunny.getComponent(AudioPlayerComponent.class).play();
+        }
+    }
+
+    @Override
+    public void destroy() {
+        super.destroy();
+        Assets.clear();
     }
 }

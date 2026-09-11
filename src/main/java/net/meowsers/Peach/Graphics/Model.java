@@ -1,5 +1,6 @@
 package net.meowsers.Peach.Graphics;
 
+import net.meowsers.Peach.Utils.Disposable;
 import net.meowsers.Peach.Structures.Color;
 import net.meowsers.Peach.Structures.Vertex;
 import net.meowsers.Peach.Utils.PeachException;
@@ -17,7 +18,7 @@ import java.util.List;
 
 import static org.lwjgl.assimp.Assimp.*;
 
-public class Model {
+public class Model implements Disposable {
     private String filepath;
     private String name = "Model";
     private List<Mesh> meshes = new ArrayList<>();
@@ -31,12 +32,12 @@ public class Model {
 
     public static final int DEFAULT_FLAGS =
             aiProcess_Triangulate |
-            aiProcess_GenSmoothNormals |
-            aiProcess_FlipUVs |
-            aiProcess_JoinIdenticalVertices |
-            aiProcess_CalcTangentSpace |
-            aiProcess_ImproveCacheLocality |
-            aiProcess_SortByPType;
+                    aiProcess_GenSmoothNormals |
+                    aiProcess_FlipUVs |
+                    aiProcess_JoinIdenticalVertices |
+                    aiProcess_CalcTangentSpace |
+                    aiProcess_ImproveCacheLocality |
+                    aiProcess_SortByPType;
 
     public Model() {
     }
@@ -144,24 +145,19 @@ public class Model {
     }
 
     private String resolveTexturePath(String texPath, File parentDir) {
-        // Normalize path
         String cleanPath = texPath.replace('\\', '/');
 
-        // 1. Direct file check
         File direct = new File(cleanPath);
         if (direct.exists()) return direct.getAbsolutePath();
 
-        // 2. Relative to model parent directory
         if (parentDir != null) {
             File relFile = new File(parentDir, cleanPath);
             if (relFile.exists()) return relFile.getAbsolutePath();
 
-            // Try filename only in model dir
             File filenameOnly = new File(parentDir, new File(cleanPath).getName());
             if (filenameOnly.exists()) return filenameOnly.getAbsolutePath();
         }
 
-        // 3. Search in resources Textures folder
         File resTex = new File("src/main/resources/Textures/" + new File(cleanPath).getName());
         if (resTex.exists()) return resTex.getAbsolutePath();
 
@@ -255,7 +251,6 @@ public class Model {
             mesh.calculateNormals();
         }
 
-        // Apply node transform if present
         if (transform != null) {
             mesh.transform(transform);
         }
@@ -282,9 +277,9 @@ public class Model {
 
         String expanded = filePath.trim();
         while ((expanded.startsWith("\"") && expanded.endsWith("\"")) ||
-               (expanded.startsWith("'") && expanded.endsWith("'")) ||
-               (expanded.startsWith("“") && expanded.endsWith("”")) ||
-               (expanded.startsWith("‘") && expanded.endsWith("’"))) {
+                (expanded.startsWith("'") && expanded.endsWith("'")) ||
+                (expanded.startsWith("“") && expanded.endsWith("”")) ||
+                (expanded.startsWith("‘") && expanded.endsWith("’"))) {
             if (expanded.length() <= 2) return null;
             expanded = expanded.substring(1, expanded.length() - 1).trim();
         }
@@ -307,24 +302,24 @@ public class Model {
         String withoutLeadingSlash = expanded.startsWith("/") ? expanded.substring(1) : expanded;
 
         String[] candidateBases = new String[] {
-            expanded,
-            withoutLeadingSlash,
-            fileName,
-            "src/main/resources/" + withoutLeadingSlash,
-            "src/main/resources/Models/" + withoutLeadingSlash,
-            "src/main/resources/Models/" + fileName,
-            "src/main/resources/" + fileName,
-            "assets/" + withoutLeadingSlash,
-            "assets/Models/" + withoutLeadingSlash,
-            withoutLeadingSlash.replaceFirst("^assets/", "src/main/resources/"),
-            withoutLeadingSlash.replaceFirst("^resources/", "src/main/resources/"),
-            withoutLeadingSlash.replaceFirst("^main/resources/", "src/main/resources/"),
-            userHome + "/Desktop/" + withoutLeadingSlash,
-            userHome + "/Desktop/" + fileName,
-            userHome + "/Downloads/" + withoutLeadingSlash,
-            userHome + "/Downloads/" + fileName,
-            userHome + "/Documents/" + withoutLeadingSlash,
-            userHome + "/Documents/" + fileName
+                expanded,
+                withoutLeadingSlash,
+                fileName,
+                "src/main/resources/" + withoutLeadingSlash,
+                "src/main/resources/Models/" + withoutLeadingSlash,
+                "src/main/resources/Models/" + fileName,
+                "src/main/resources/" + fileName,
+                "assets/" + withoutLeadingSlash,
+                "assets/Models/" + withoutLeadingSlash,
+                withoutLeadingSlash.replaceFirst("^assets/", "src/main/resources/"),
+                withoutLeadingSlash.replaceFirst("^resources/", "src/main/resources/"),
+                withoutLeadingSlash.replaceFirst("^main/resources/", "src/main/resources/"),
+                userHome + "/Desktop/" + withoutLeadingSlash,
+                userHome + "/Desktop/" + fileName,
+                userHome + "/Downloads/" + withoutLeadingSlash,
+                userHome + "/Downloads/" + fileName,
+                userHome + "/Documents/" + withoutLeadingSlash,
+                userHome + "/Documents/" + fileName
         };
 
         String[] extensions = new String[] { "", ".obj", ".gltf", ".glb", ".fbx", ".dae", ".stl", ".ply", ".3ds" };
@@ -340,7 +335,6 @@ public class Model {
             }
         }
 
-        // Case-insensitive search in src/main/resources/Models and src/main/resources
         File modelsDir = new File("src/main/resources/Models");
         if (modelsDir.exists() && modelsDir.isDirectory()) {
             File[] files = modelsDir.listFiles();
@@ -349,9 +343,9 @@ public class Model {
                     if (f.isFile()) {
                         String nameWithoutExt = f.getName().replaceFirst("\\.[^.]+$", "");
                         if (f.getName().equalsIgnoreCase(fileName) ||
-                            nameWithoutExt.equalsIgnoreCase(fileName) ||
-                            f.getName().equalsIgnoreCase(expanded) ||
-                            nameWithoutExt.equalsIgnoreCase(expanded)) {
+                                nameWithoutExt.equalsIgnoreCase(fileName) ||
+                                f.getName().equalsIgnoreCase(expanded) ||
+                                nameWithoutExt.equalsIgnoreCase(expanded)) {
                             return f.getAbsolutePath();
                         }
                     }
@@ -401,8 +395,8 @@ public class Model {
         if (dir == null || !dir.isDirectory() || targetName == null || targetName.isEmpty()) return null;
         String dirName = dir.getName();
         if (dirName.startsWith(".") || dirName.equals("build") || dirName.equals(".gradle") ||
-            dirName.equals(".git") || dirName.equals(".idea") || dirName.equals("gradle") ||
-            dirName.equals("out") || dirName.equals("target")) {
+                dirName.equals(".git") || dirName.equals(".idea") || dirName.equals("gradle") ||
+                dirName.equals("out") || dirName.equals("target")) {
             return null;
         }
         File[] files = dir.listFiles();
@@ -720,13 +714,18 @@ public class Model {
         return culled;
     }
 
-    public void destroy() {
+    @Override
+    public void dispose() {
         for (Texture t : textures) {
             if (t != null) {
-                t.destroy();
+                t.dispose();
             }
         }
         textures.clear();
         meshes.clear();
+    }
+
+    public void destroy() {
+        dispose();
     }
 }

@@ -1,5 +1,6 @@
 package net.meowsers.Peach.ECS.Components;
 
+import net.meowsers.Peach.GameEngine.Assets;
 import net.meowsers.Peach.GUI.Editor;
 import net.meowsers.Peach.Graphics.Mesh;
 import net.meowsers.Peach.Graphics.Model;
@@ -16,10 +17,12 @@ import java.util.Objects;
 
 public class MeshRendererComponent extends BehaviorComponent {
 
-    public Model model;
+    public transient Model model;
     @Editor private String modelPath;
+    @Editor private String texturePath;
     private boolean visible = true;
     private transient String lastLoadedModelPath;
+    private transient String lastLoadedTexturePath;
     @Editor(argument = "Read-Only") private int vertCount;
 
     private transient Vector3f savedScale = new Vector3f(1.0f, 1.0f, 1.0f);
@@ -91,10 +94,21 @@ public class MeshRendererComponent extends BehaviorComponent {
         return modelPath;
     }
 
+    public void setTexturePath(String texturePath) {
+        this.texturePath = texturePath;
+        loadTexture();
+    }
+    public String getTexturePath() {
+        return texturePath;
+    }
+
     public void setMesh(Mesh mesh) {
         this.model = new Model(mesh);
         this.modelPath = null;
         this.lastLoadedModelPath = null;
+        if (this.model.getMesh(0) != null) {
+            vertCount = this.model.getMesh(0).getVertexCount();
+        }
     }
 
     private void saveModelProperties(Model m) {
@@ -110,9 +124,8 @@ public class MeshRendererComponent extends BehaviorComponent {
         if (m.getTextures() != null && !m.getTextures().isEmpty()) {
             savedTextures = new ArrayList<>(m.getTextures());
         }
-        if(m.getMesh(0) != null) {
+        if (m.getMesh(0) != null) {
             vertCount = m.getMesh(0).getVertexCount();
-
         }
     }
 
@@ -134,6 +147,7 @@ public class MeshRendererComponent extends BehaviorComponent {
                 saveModelProperties(this.model);
             }
             this.model = new Model();
+            vertCount = 0;
             return;
         }
 
@@ -150,10 +164,34 @@ public class MeshRendererComponent extends BehaviorComponent {
                     restoreModelProperties(newModel);
                     this.model = newModel;
                     this.lastLoadedModelPath = this.modelPath;
+
+                    if (this.model.getMesh(0) != null) {
+                        vertCount = this.model.getMesh(0).getVertexCount();
+                    }
                 }
             }
         } catch (Exception e) {
             System.err.println("Failed to load model from path: " + this.modelPath + " (" + e.getMessage() + ")");
+        }
+    }
+
+    public void loadTexture() {
+        if (this.texturePath == null || this.texturePath.trim().isEmpty()) {
+            this.lastLoadedTexturePath = this.texturePath;
+            return;
+        }
+
+        try {
+            File file = new File(this.texturePath);
+            if (file.exists() && file.isFile()) {
+                Texture tex = Assets.get(this.texturePath, Texture::new);
+                if (this.model != null && tex != null) {
+                    this.model.setTextures(tex);
+                }
+                this.lastLoadedTexturePath = this.texturePath;
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to load texture from path: " + this.texturePath + " (" + e.getMessage() + ")");
         }
     }
 
@@ -189,12 +227,15 @@ public class MeshRendererComponent extends BehaviorComponent {
     @Override
     public void update(float dt) {
         super.update(dt);
-        if (model != null && model.getMeshes() != null && !model.getMeshes().isEmpty()) {
-            saveModelProperties(model);
-        }
+
+        // Check for inspector/path changes without hammering performance
         if (!Objects.equals(modelPath, lastLoadedModelPath)) {
             loadModel();
         }
+        if (!Objects.equals(texturePath, lastLoadedTexturePath)) {
+            loadTexture();
+        }
+
         if (!visible || !isEnabled() || model == null) return;
 
         TransformComponent t = getTransform();

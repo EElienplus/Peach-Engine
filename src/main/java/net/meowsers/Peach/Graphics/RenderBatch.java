@@ -36,12 +36,12 @@ public class RenderBatch {
     private boolean hasRoom = true;
     private final Texture whiteTexture;
 
-    private final int[] slotMap = new int[16];
+    private final int[] slotMap = new int[15];
     private final Vector4f tempPos = new Vector4f();
     private final Vector3f tempNorm = new Vector3f();
 
     public RenderBatch(Texture whiteTexture) {
-        this.textures = new Texture[16];
+        this.textures = new Texture[15];
         this.whiteTexture = whiteTexture;
         this.textures[0] = whiteTexture;
         this.textureCount = 1;
@@ -87,7 +87,7 @@ public class RenderBatch {
     }
 
     public boolean hasTextureRoom() {
-        return textureCount < 16;
+        return textureCount < 15;
     }
 
     public boolean hasTextures(Collection<Texture> texs) {
@@ -98,7 +98,7 @@ public class RenderBatch {
                 needed++;
             }
         }
-        return textureCount + needed <= 16;
+        return textureCount + needed <= 15;
     }
 
     public boolean hasTextures(Texture... texs) {
@@ -127,7 +127,7 @@ public class RenderBatch {
                 return (float) i;
             }
         }
-        if (textureCount < 16) {
+        if (textureCount < 15) {
             textures[textureCount] = tex;
             float slot = (float) textureCount;
             textureCount++;
@@ -153,7 +153,7 @@ public class RenderBatch {
         boolean hasSlotMap = false;
         if (texturesList != null && !texturesList.isEmpty()) {
             hasSlotMap = true;
-            for (int i = 0; i < texturesList.size() && i < 16; i++) {
+            for (int i = 0; i < texturesList.size() && i < 15; i++) {
                 slotMap[i] = (int) addTexture(texturesList.get(i));
             }
         }
@@ -234,7 +234,7 @@ public class RenderBatch {
 
         if (activeTextures != null && !activeTextures.isEmpty()) {
             hasSlotMap = true;
-            for (int i = 0; i < activeTextures.size() && i < 16; i++) {
+            for (int i = 0; i < activeTextures.size() && i < 15; i++) {
                 slotMap[i] = (int) addTexture(activeTextures.get(i));
             }
             fallbackSlot = (float) slotMap[0];
@@ -286,7 +286,7 @@ public class RenderBatch {
             float tid = fallbackSlot;
             if (hasSlotMap) {
                 int rawTid = (int) v.texID;
-                if (rawTid >= 0 && rawTid < activeTextures.size() && rawTid < 16) {
+                if (rawTid >= 0 && rawTid < activeTextures.size() && rawTid < 15) {
                     tid = (float) slotMap[rawTid];
                 }
             }
@@ -364,7 +364,7 @@ public class RenderBatch {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboID);
         glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, indexBuffer);
 
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 15; i++) {
             if (textures[i] != null) {
                 textures[i].bind(i);
             } else if (whiteTexture != null) {
@@ -395,7 +395,7 @@ public class RenderBatch {
         glDisableVertexAttribArray(4);
         glBindVertexArray(0);
 
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 15; i++) {
             if (textures[i] != null) {
                 textures[i].unbind();
             } else if (whiteTexture != null) {

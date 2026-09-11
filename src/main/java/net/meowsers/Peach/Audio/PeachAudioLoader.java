@@ -10,9 +10,7 @@ import java.nio.ShortBuffer;
 import static org.lwjgl.openal.AL10.*;
 import static org.lwjgl.stb.STBVorbis.*;
 
-/** Use PeachAudioPlayer for loading sound files! */
 public class PeachAudioLoader {
-    /** Use PeachAudioPlayer for loading sound files! */
     public static int loadOGG(String filePath) {
         int bufferId = alGenBuffers();
         long decoder = 0;

@@ -103,15 +103,26 @@ public class Camera {
         if (rightClickToLook) {
             if (isRmbDown) {
                 if (!wasRmbDown) {
+                    wasRmbDown = true;
+                    Input.setCursorLocked(true);
+
+                    // FIX: Re-read mouse position immediately after locking
+                    // to swallow the cursor-centering warp delta
+                    mouseX = Input.getMouseX();
+                    mouseY = Input.getMouseY();
                     lastMouseX = mouseX;
                     lastMouseY = mouseY;
-                    wasRmbDown = true;
                 }
-                Input.setCursorLocked(true);
             } else {
                 if (wasRmbDown) {
                     wasRmbDown = false;
                     Input.setCursorLocked(false);
+
+                    // Re-read on release as well to prevent post-release jumps
+                    mouseX = Input.getMouseX();
+                    mouseY = Input.getMouseY();
+                    lastMouseX = mouseX;
+                    lastMouseY = mouseY;
                 }
             }
         } else {

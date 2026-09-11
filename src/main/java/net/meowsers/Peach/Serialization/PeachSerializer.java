@@ -20,7 +20,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PeachSerializer {
 
@@ -33,6 +35,22 @@ public class PeachSerializer {
 
     public static Gson getGson() {
         return gson;
+    }
+
+    public static void saveHashMap(String filePath, Map<?, ?> map) {
+        String jsonStr = gson.toJson(map != null ? map : new HashMap<>());
+        writeToFile(filePath, jsonStr);
+    }
+    public static <K, V> Map<K, V> loadHashMap(String filePath, Class<K> keyClass, Class<V> valueClass) {
+        try {
+            String content = Files.readString(Paths.get(filePath));
+            if (content == null || content.isBlank()) return new HashMap<>();
+            Type mapType = TypeToken.getParameterized(Map.class, keyClass, valueClass).getType();
+            Map<K, V> result = gson.fromJson(content, mapType);
+            return result != null ? result : new HashMap<>();
+        } catch (IOException e) {
+            throw new PeachException("Failed to read file: " + filePath, e);
+        }
     }
 
     public static void saveGameObjects(String filePath, GameObject... gameObjects) {
@@ -126,7 +144,6 @@ public class PeachSerializer {
         GameObject go = gson.fromJson(json, GameObject.class);
         return postProcess(go);
     }
-
     public static List<GameObject> deserializeLevel(String json, PeachLevel level) {
         List<GameObject> gameObjects = deserializeGameObjects(json);
         if (level != null) {
@@ -210,7 +227,6 @@ public class PeachSerializer {
             return null;
         }
     }
-
     private static class ModelAdapter implements JsonSerializer<Model>, JsonDeserializer<Model> {
         @Override
         public JsonElement serialize(Model src, Type typeOfSrc, JsonSerializationContext context) {
@@ -304,7 +320,6 @@ public class PeachSerializer {
             return model;
         }
     }
-
     private static class TextureAdapter implements JsonSerializer<Texture>, JsonDeserializer<Texture> {
         @Override
         public JsonElement serialize(Texture src, Type typeOfSrc, JsonSerializationContext context) {

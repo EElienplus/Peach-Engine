@@ -1,5 +1,6 @@
 package net.meowsers.Peach.Graphics;
 
+import net.meowsers.Peach.Utils.Disposable;
 import net.meowsers.Peach.Structures.Color;
 import net.meowsers.Peach.Utils.PeachException;
 import org.lwjgl.BufferUtils;
@@ -10,7 +11,7 @@ import java.nio.IntBuffer;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.stb.STBImage.*;
 
-public class Texture {
+public class Texture implements Disposable {
     private final int textureID;
     private int width, height;
     private String filepath;
@@ -133,7 +134,12 @@ public class Texture {
         this.filepath = filepath;
     }
 
-    public void destroy() {
+    @Override
+    public void dispose() {
         glDeleteTextures(textureID);
+    }
+
+    public void destroy() {
+        dispose();
     }
 }

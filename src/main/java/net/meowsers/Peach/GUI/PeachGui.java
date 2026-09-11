@@ -85,7 +85,7 @@ public class PeachGui {
     private static final float MIN_SCALE = 0.001f;
     private static int gizmoOperation = Operation.TRANSLATE;
     private static int gizmoMode = Mode.LOCAL;
-    private static boolean gizmoSnap = false;
+    private static boolean gizmoSnap = true;
     private static float gizmoSnapValue = 1.0f;
     private static final float[] gizmoSnapValues = new float[]{1.0f, 1.0f, 1.0f};
     private static final float[] gizmoMatrixBuffer = new float[16];
